@@ -20,6 +20,7 @@
 #define SWGTag_H_
 
 #include <QJsonObject>
+#include <QStringList>
 
 
 #include <QString>
@@ -31,31 +32,34 @@ namespace Swagger {
 class SWGTag: public SWGObject {
 public:
     SWGTag();
-    SWGTag(QString json);
-    ~SWGTag();
+    SWGTag(QString const &json);
+    virtual ~SWGTag();
     void init();
     void cleanup();
 
-    QString asJson () override;
-    QJsonObject asJsonObject() override;
-    void fromJsonObject(QJsonObject json) override;
-    SWGTag* fromJson(QString jsonString) override;
+    QString asJson () const override;
+    QJsonObject asJsonObject() const override;
+    void fromJsonObject(QJsonObject const &json) override;
+    void fromJson(QString const &jsonString) override;
 
-    qint64 getId();
-    void setId(qint64 id);
+    
+    qint64 getId() const;
+    void setId(qint64 const &id);
 
-    QString* getName();
-    void setName(QString* name);
+    
+    QString getName() const;
+    void setName(QString const &name);
 
 
-    virtual bool isSet() override;
+    virtual bool isSet() const override;
 
 private:
+    
     qint64 id;
-    bool m_id_isSet;
+    bool id_isSet;
 
-    QString* name;
-    bool m_name_isSet;
+    
+    QString name;
 
 };
 

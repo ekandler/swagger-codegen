@@ -61,30 +61,40 @@ public:
 
 };
 
-
 class SWGHttpRequestWorker : public QObject {
     Q_OBJECT
 
 public:
-    QByteArray response;
+    QByteArray rawResponse;
+    QNetworkReply * reply = nullptr;
     QNetworkReply::NetworkError error_type;
     QString error_str;
+    QString msg; // debug message
 
     explicit SWGHttpRequestWorker(QObject *parent = 0);
     virtual ~SWGHttpRequestWorker();
 
+    virtual void processResult() {}
+
     QString http_attribute_encode(QString attribute_name, QString input);
-    void execute(SWGHttpRequestInput *input);
+    void execute(SWGHttpRequestInput &input);
     static QSslConfiguration* sslDefaultConfiguration;
 
-signals:
-    void on_execution_finished(SWGHttpRequestWorker *worker);
+    bool isFinished() const {return reply && reply->isFinished();}
+    bool isRunning() const {return reply && reply->isRunning();}
+    QNetworkRequest rawRequest() const {return reply ? reply->request() : QNetworkRequest();}
+    int httpStatusCode() const {return reply ? reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() : 0;}
+    bool isValid() const {return isFinished() && error_type==QNetworkReply::NoError && httpStatusCode() < 400;} 
+
+Q_SIGNALS:
+    void finished();
+    void error(QNetworkReply::NetworkError code);
 
 private:
     QNetworkAccessManager *manager;
 
-private slots:
-    void on_manager_finished(QNetworkReply *reply);
+private Q_SLOTS:
+    void on_reply_finished();
 
 };
 

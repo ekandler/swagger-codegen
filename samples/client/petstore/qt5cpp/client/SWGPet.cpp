@@ -22,7 +22,13 @@
 
 namespace Swagger {
 
-SWGPet::SWGPet(QString json) {
+QStringList SWGPet::data_status { 
+    "available",
+    "pending",
+    "sold"
+};
+
+SWGPet::SWGPet(QString const &json) {
     init();
     this->fromJson(json);
 }
@@ -35,180 +41,136 @@ SWGPet::~SWGPet() {
     this->cleanup();
 }
 
-void
-SWGPet::init() {
+void SWGPet::init() {
     id = 0L;
-    m_id_isSet = false;
-    category = new SWGCategory();
-    m_category_isSet = false;
-    name = new QString("");
-    m_name_isSet = false;
-    photo_urls = new QList<QString*>();
-    m_photo_urls_isSet = false;
-    tags = new QList<SWGTag*>();
-    m_tags_isSet = false;
-    status = new QString("");
-    m_status_isSet = false;
+    id_isSet = false;status = status_SWGUndefined;
 }
 
-void
-SWGPet::cleanup() {
-
-    if(category != nullptr) { 
-        delete category;
-    }
-    if(name != nullptr) { 
-        delete name;
-    }
-    if(photo_urls != nullptr) { 
-        auto arr = photo_urls;
-        for(auto o: *arr) { 
-            delete o;
-        }
-        delete photo_urls;
-    }
-    if(tags != nullptr) { 
-        auto arr = tags;
-        for(auto o: *arr) { 
-            delete o;
-        }
-        delete tags;
-    }
-    if(status != nullptr) { 
-        delete status;
-    }
+void SWGPet::cleanup() {
 }
 
-SWGPet*
-SWGPet::fromJson(QString json) {
+void SWGPet::fromJson(QString const &json) {
     QByteArray array (json.toStdString().c_str());
     QJsonDocument doc = QJsonDocument::fromJson(array);
     QJsonObject jsonObject = doc.object();
     this->fromJsonObject(jsonObject);
-    return this;
 }
 
-void
-SWGPet::fromJsonObject(QJsonObject pJson) {
-    ::Swagger::setValue(&id, pJson["id"], "qint64", "");
+void SWGPet::fromJsonObject(QJsonObject const &pJson) {
+    mGenericData = pJson;
     
-    ::Swagger::setValue(&category, pJson["category"], "SWGCategory", "SWGCategory");
+    id_isSet = pJson.contains("id");
+    id = fromJsonValue<qint64>(pJson["id"]);
+
+
+    category = fromJsonValue<SWGCategory>(pJson["category"]);
+
+
+    name = fromJsonValue<QString>(pJson["name"]);
+
+
     
-    ::Swagger::setValue(&name, pJson["name"], "QString", "QString");
+    photo_urls = containerFromJsonValue<QList<QString> >(pJson["photoUrls"]);
     
     
-    ::Swagger::setValue(&photo_urls, pJson["photoUrls"], "QList", "QString");
+
     
-    ::Swagger::setValue(&tags, pJson["tags"], "QList", "SWGTag");
-    ::Swagger::setValue(&status, pJson["status"], "QString", "QString");
+    tags = containerFromJsonValue<QList<SWGTag> >(pJson["tags"]);
     
+    
+
+    status = status(data_status.indexOf(fromJsonValue<QString>(pJson["status"])));
 }
 
-QString
-SWGPet::asJson ()
+QString SWGPet::asJson () const
 {
-    QJsonObject obj = this->asJsonObject();
+    QJsonObject const obj = this->asJsonObject();
     QJsonDocument doc(obj);
     QByteArray bytes = doc.toJson();
     return QString(bytes);
 }
 
-QJsonObject
-SWGPet::asJsonObject() {
+QJsonObject SWGPet::asJsonObject() const {
     QJsonObject obj;
-    if(m_id_isSet){
-        obj.insert("id", QJsonValue(id));
-    }
-    if((category != nullptr) && (category->isSet())){
-        toJsonValue(QString("category"), category, obj, QString("SWGCategory"));
-    }
-    if(name != nullptr && *name != QString("")){
-        toJsonValue(QString("name"), name, obj, QString("QString"));
-    }
-    if(photo_urls->size() > 0){
-        toJsonArray((QList<void*>*)photo_urls, obj, "photoUrls", "QString");
-    }
-    if(tags->size() > 0){
-        toJsonArray((QList<void*>*)tags, obj, "tags", "SWGTag");
-    }
-    if(status != nullptr && *status != QString("")){
-        toJsonValue(QString("status"), status, obj, QString("QString"));
-    }
+    
+    obj.insert("id", QJsonValue(id));
+
+    obj.insert("category", toJsonValue(category));
+
+    obj.insert("name", toJsonValue(name));
+
+    obj.insert("photoUrls", toJsonArray(photo_urls));
+
+    obj.insert("tags", toJsonArray(tags));
+
+    obj.insert("status", data_status.at(status));
 
     return obj;
 }
 
-qint64
-SWGPet::getId() {
+
+qint64 SWGPet::getId() const {
     return id;
 }
-void
-SWGPet::setId(qint64 id) {
+void SWGPet::setId(qint64 const &id) {
     this->id = id;
-    this->m_id_isSet = true;
+    this->id_isSet = true;
 }
 
-SWGCategory*
-SWGPet::getCategory() {
+
+SWGCategory SWGPet::getCategory() const {
     return category;
 }
-void
-SWGPet::setCategory(SWGCategory* category) {
+void SWGPet::setCategory(SWGCategory const &category) {
     this->category = category;
-    this->m_category_isSet = true;
 }
 
-QString*
-SWGPet::getName() {
+
+QString SWGPet::getName() const {
     return name;
 }
-void
-SWGPet::setName(QString* name) {
+void SWGPet::setName(QString const &name) {
     this->name = name;
-    this->m_name_isSet = true;
 }
 
-QList<QString*>*
-SWGPet::getPhotoUrls() {
+
+QList<QString> SWGPet::getPhotoUrls() const {
     return photo_urls;
 }
-void
-SWGPet::setPhotoUrls(QList<QString*>* photo_urls) {
+void SWGPet::setPhotoUrls(QList<QString> const &photo_urls) {
     this->photo_urls = photo_urls;
-    this->m_photo_urls_isSet = true;
 }
 
-QList<SWGTag*>*
-SWGPet::getTags() {
+
+QList<SWGTag> SWGPet::getTags() const {
     return tags;
 }
-void
-SWGPet::setTags(QList<SWGTag*>* tags) {
+void SWGPet::setTags(QList<SWGTag> const &tags) {
     this->tags = tags;
-    this->m_tags_isSet = true;
 }
 
-QString*
-SWGPet::getStatus() {
+SWGPet::status SWGPet::getStatus() const {
     return status;
 }
-void
-SWGPet::setStatus(QString* status) {
+void SWGPet::setStatus(status const &status) {
     this->status = status;
-    this->m_status_isSet = true;
 }
 
 
-bool
-SWGPet::isSet(){
+bool SWGPet::isSet() const{
     bool isObjectUpdated = false;
     do{
-        if(m_id_isSet){ isObjectUpdated = true; break;}
-        if(category != nullptr && category->isSet()){ isObjectUpdated = true; break;}
-        if(name != nullptr && *name != QString("")){ isObjectUpdated = true; break;}
-        if(photo_urls->size() > 0){ isObjectUpdated = true; break;}
-        if(tags->size() > 0){ isObjectUpdated = true; break;}
-        if(status != nullptr && *status != QString("")){ isObjectUpdated = true; break;}
+        
+        if(id_isSet){ isObjectUpdated = true; break;}
+        
+        if(category.isSet()){ isObjectUpdated = true; break;}
+        
+        if(!name.isNull()){ isObjectUpdated = true; break;}
+        
+        if(photo_urls.size() > 0){ isObjectUpdated = true; break;}
+        
+        if(tags.size() > 0){ isObjectUpdated = true; break;}
+        if(status>=0) { isObjectUpdated = true; break;}
     }while(false);
     return isObjectUpdated;
 }

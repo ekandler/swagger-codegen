@@ -20,6 +20,7 @@
 #define SWGApiResponse_H_
 
 #include <QJsonObject>
+#include <QStringList>
 
 
 #include <QString>
@@ -31,37 +32,41 @@ namespace Swagger {
 class SWGApiResponse: public SWGObject {
 public:
     SWGApiResponse();
-    SWGApiResponse(QString json);
-    ~SWGApiResponse();
+    SWGApiResponse(QString const &json);
+    virtual ~SWGApiResponse();
     void init();
     void cleanup();
 
-    QString asJson () override;
-    QJsonObject asJsonObject() override;
-    void fromJsonObject(QJsonObject json) override;
-    SWGApiResponse* fromJson(QString jsonString) override;
+    QString asJson () const override;
+    QJsonObject asJsonObject() const override;
+    void fromJsonObject(QJsonObject const &json) override;
+    void fromJson(QString const &jsonString) override;
 
-    qint32 getCode();
-    void setCode(qint32 code);
+    
+    qint32 getCode() const;
+    void setCode(qint32 const &code);
 
-    QString* getType();
-    void setType(QString* type);
+    
+    QString getType() const;
+    void setType(QString const &type);
 
-    QString* getMessage();
-    void setMessage(QString* message);
+    
+    QString getMessage() const;
+    void setMessage(QString const &message);
 
 
-    virtual bool isSet() override;
+    virtual bool isSet() const override;
 
 private:
+    
     qint32 code;
-    bool m_code_isSet;
+    bool code_isSet;
 
-    QString* type;
-    bool m_type_isSet;
+    
+    QString type;
 
-    QString* message;
-    bool m_message_isSet;
+    
+    QString message;
 
 };
 

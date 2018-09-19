@@ -11,29 +11,28 @@
  */
 
 /*
- * SWGCategory.h
+ * SWGCurrency.h
  *
- * A category for a pet
+ * some description 
  */
 
-#ifndef SWGCategory_H_
-#define SWGCategory_H_
+#ifndef SWGCurrency_H_
+#define SWGCurrency_H_
 
 #include <QJsonObject>
 #include <QStringList>
 
 
-#include <QString>
 
 #include "SWGObject.h"
 
 namespace Swagger {
 
-class SWGCategory: public SWGObject {
+class SWGCurrency: public SWGObject {
 public:
-    SWGCategory();
-    SWGCategory(QString const &json);
-    virtual ~SWGCategory();
+    SWGCurrency();
+    SWGCurrency(QString const &json);
+    virtual ~SWGCurrency();
     void init();
     void cleanup();
 
@@ -42,27 +41,12 @@ public:
     void fromJsonObject(QJsonObject const &json) override;
     void fromJson(QString const &jsonString) override;
 
-    
-    qint64 getId() const;
-    void setId(qint64 const &id);
-
-    
-    QString getName() const;
-    void setName(QString const &name);
-
 
     virtual bool isSet() const override;
 
 private:
-    
-    qint64 id;
-    bool id_isSet;
-
-    
-    QString name;
-
 };
 
 }
 
-#endif /* SWGCategory_H_ */
+#endif /* SWGCurrency_H_ */

@@ -14,6 +14,7 @@
 #define _SWG_SWGPetApi_H_
 
 #include "SWGHttpRequest.h"
+#include "SWGHelpers.h"
 
 #include <QString>
 #include "SWGApiResponse.h"
@@ -24,55 +25,52 @@
 
 namespace Swagger {
 
+class SWGAddPetReply;
+class SWGDeletePetReply;
+class SWGFindPetsByStatusReply;
+class SWGFindPetsByTagsReply;
+class SWGGetPetByIdReply;
+class SWGUpdatePetReply;
+class SWGUpdatePetWithFormReply;
+class SWGUploadFileReply;
+
 class SWGPetApi: public QObject {
     Q_OBJECT
 
 public:
-    SWGPetApi();
-    SWGPetApi(QString host, QString basePath);
+    SWGPetApi(QObject * parent = nullptr);
+    SWGPetApi(SWGClientConfig const &api, QObject * parent = nullptr);
     ~SWGPetApi();
 
-    QString host;
-    QString basePath;
-    QMap<QString, QString> defaultHeaders;
+    SWGClientConfig config;
 
-    void addPet(SWGPet& body);
-    void deletePet(qint64 pet_id, QString* api_key);
-    void findPetsByStatus(QList<QString*>* status);
-    void findPetsByTags(QList<QString*>* tags);
-    void getPetById(qint64 pet_id);
-    void updatePet(SWGPet& body);
-    void updatePetWithForm(qint64 pet_id, QString* name, QString* status);
-    void uploadFile(qint64 pet_id, QString* additional_metadata, SWGHttpRequestInputFileElement* file);
+    QSharedPointer<SWGAddPetReply> addPet(SWGPet const &body);
+    QSharedPointer<SWGDeletePetReply> deletePet(qint64 const &pet_id, QString const &api_key);
+    QSharedPointer<SWGFindPetsByStatusReply> findPetsByStatus(QList<QString> const &status);
+    QSharedPointer<SWGFindPetsByTagsReply> findPetsByTags(QList<QString> const &tags);
+    QSharedPointer<SWGGetPetByIdReply> getPetById(qint64 const &pet_id);
+    QSharedPointer<SWGUpdatePetReply> updatePet(SWGPet const &body);
+    QSharedPointer<SWGUpdatePetWithFormReply> updatePetWithForm(qint64 const &pet_id, QString const &name, QString const &status);
+    QSharedPointer<SWGUploadFileReply> uploadFile(qint64 const &pet_id, QString const &additional_metadata, SWGHttpRequestInputFileElement const &file);
     
-private:
-    void addPetCallback (SWGHttpRequestWorker * worker);
-    void deletePetCallback (SWGHttpRequestWorker * worker);
-    void findPetsByStatusCallback (SWGHttpRequestWorker * worker);
-    void findPetsByTagsCallback (SWGHttpRequestWorker * worker);
-    void getPetByIdCallback (SWGHttpRequestWorker * worker);
-    void updatePetCallback (SWGHttpRequestWorker * worker);
-    void updatePetWithFormCallback (SWGHttpRequestWorker * worker);
-    void uploadFileCallback (SWGHttpRequestWorker * worker);
-    
-signals:
+Q_SIGNALS:
     void addPetSignal();
     void deletePetSignal();
-    void findPetsByStatusSignal(QList<SWGPet*>* summary);
-    void findPetsByTagsSignal(QList<SWGPet*>* summary);
-    void getPetByIdSignal(SWGPet* summary);
+    void findPetsByStatusSignal(QList<SWGPet> summary);
+    void findPetsByTagsSignal(QList<SWGPet> summary);
+    void getPetByIdSignal(SWGPet summary);
     void updatePetSignal();
     void updatePetWithFormSignal();
-    void uploadFileSignal(SWGApiResponse* summary);
+    void uploadFileSignal(SWGApiResponse summary);
     
     void addPetSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
     void deletePetSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
-    void findPetsByStatusSignalE(QList<SWGPet*>* summary, QNetworkReply::NetworkError error_type, QString& error_str);
-    void findPetsByTagsSignalE(QList<SWGPet*>* summary, QNetworkReply::NetworkError error_type, QString& error_str);
-    void getPetByIdSignalE(SWGPet* summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void findPetsByStatusSignalE(QList<SWGPet> summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void findPetsByTagsSignalE(QList<SWGPet> summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void getPetByIdSignalE(SWGPet summary, QNetworkReply::NetworkError error_type, QString& error_str);
     void updatePetSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
     void updatePetWithFormSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
-    void uploadFileSignalE(SWGApiResponse* summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void uploadFileSignalE(SWGApiResponse summary, QNetworkReply::NetworkError error_type, QString& error_str);
     
     void addPetSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     void deletePetSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
@@ -83,7 +81,77 @@ signals:
     void updatePetWithFormSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     void uploadFileSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     
+    void petError(QString operation, QNetworkReply::NetworkError error_type, QString errMsg);
 };
+
+class SWGAddPetReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGAddPetReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGPetApi * api;
+};
+
+class SWGDeletePetReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGDeletePetReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGPetApi * api;
+};
+
+class SWGFindPetsByStatusReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGFindPetsByStatusReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    QList<SWGPet> result;
+    SWGPetApi * api;
+};
+
+class SWGFindPetsByTagsReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGFindPetsByTagsReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    QList<SWGPet> result;
+    SWGPetApi * api;
+};
+
+class SWGGetPetByIdReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGGetPetByIdReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGPet result;
+    SWGPetApi * api;
+};
+
+class SWGUpdatePetReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGUpdatePetReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGPetApi * api;
+};
+
+class SWGUpdatePetWithFormReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGUpdatePetWithFormReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGPetApi * api;
+};
+
+class SWGUploadFileReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGUploadFileReply(SWGPetApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGApiResponse result;
+    SWGPetApi * api;
+};
+
 
 }
 #endif

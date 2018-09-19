@@ -12,85 +12,73 @@
 
 #include "SWGPetApi.h"
 #include "SWGHelpers.h"
-#include "SWGModelFactory.h"
-#include "SWGQObjectWrapper.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 
 namespace Swagger {
 
-SWGPetApi::SWGPetApi() {}
+SWGPetApi::SWGPetApi(QObject * parent) : QObject(parent) {}
 
 SWGPetApi::~SWGPetApi() {}
 
-SWGPetApi::SWGPetApi(QString host, QString basePath) {
-    this->host = host;
-    this->basePath = basePath;
-}
+SWGPetApi::SWGPetApi(SWGClientConfig const &config, QObject * parent) : QObject(parent), config(config) {}
 
-void
-SWGPetApi::addPet(SWGPet& body) {
+QSharedPointer<SWGAddPetReply> SWGPetApi::addPet(SWGPet const &body) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet");
+    fullPath.append(config.baseUrl).append("/pet");
 
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGAddPetReply> worker(new SWGAddPetReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "POST");
 
 
-    
     QString output = body.asJson();
     input.request_body.append(output);
     
 
+    // TODO: complete authMethods support
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::addPetCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGAddPetReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::addPetCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGAddPetReply::SWGAddPetReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGAddPetReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("addPet", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit addPetSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->addPetSignal();
     } else {
-        emit addPetSignalE(error_type, error_str);
-        emit addPetSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->addPetSignalE(error_type, error_str);
+        Q_EMIT api->addPetSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGPetApi::deletePet(qint64 pet_id, QString* api_key) {
+QSharedPointer<SWGDeletePetReply> SWGPetApi::deletePet(qint64 const &pet_id, QString const &api_key) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet/{petId}");
+    fullPath.append(config.baseUrl).append("/pet/{petId}");
 
     QString pet_idPathParam("{"); pet_idPathParam.append("petId").append("}");
     fullPath.replace(pet_idPathParam, stringValue(pet_id));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGDeletePetReply> worker(new SWGDeletePetReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "DELETE");
 
 
@@ -99,53 +87,48 @@ SWGPetApi::deletePet(qint64 pet_id, QString* api_key) {
     if (api_key != nullptr) {
         input.headers.insert("api_key", "api_key");
     }
+    // TODO: complete authMethods support
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::deletePetCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGDeletePetReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::deletePetCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGDeletePetReply::SWGDeletePetReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGDeletePetReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("deletePet", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit deletePetSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->deletePetSignal();
     } else {
-        emit deletePetSignalE(error_type, error_str);
-        emit deletePetSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->deletePetSignalE(error_type, error_str);
+        Q_EMIT api->deletePetSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGPetApi::findPetsByStatus(QList<QString*>* status) {
+QSharedPointer<SWGFindPetsByStatusReply> SWGPetApi::findPetsByStatus(QList<QString> const &status) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet/findByStatus");
+    fullPath.append(config.baseUrl).append("/pet/findByStatus");
 
 
 
 
-    if (status->size() > 0) {
+    if (status.size() > 0) {
       if (QString("csv").indexOf("multi") == 0) {
-        foreach(QString* t, *status) {
+        Q_FOREACH(QString t, status) {
           if (fullPath.indexOf("?") > 0)
             fullPath.append("&");
           else
@@ -160,7 +143,7 @@ SWGPetApi::findPetsByStatus(QList<QString*>* status) {
           fullPath.append("?");
         fullPath.append("status=");
         qint32 count = 0;
-        foreach(QString* t, *status) {
+        Q_FOREACH(QString t, status) {
           if (count > 0) {
             fullPath.append(" ");
           }
@@ -174,7 +157,7 @@ SWGPetApi::findPetsByStatus(QList<QString*>* status) {
           fullPath.append("?");
         fullPath.append("status=");
         qint32 count = 0;
-        foreach(QString* t, *status) {
+        Q_FOREACH(QString t, status) {
           if (count > 0) {
             fullPath.append("\t");
           }
@@ -184,75 +167,62 @@ SWGPetApi::findPetsByStatus(QList<QString*>* status) {
     }
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGFindPetsByStatusReply> worker(new SWGFindPetsByStatusReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "GET");
 
 
 
 
+    // TODO: complete authMethods support
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::findPetsByStatusCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGFindPetsByStatusReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::findPetsByStatusCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGFindPetsByStatusReply::SWGFindPetsByStatusReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGFindPetsByStatusReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("findPetsByStatus", error_type, msg);
     }
 
-    QList<SWGPet*>* output = new QList<SWGPet*>();
-    QString json(worker->response);
-    QByteArray array (json.toStdString().c_str());
-    QJsonDocument doc = QJsonDocument::fromJson(array);
-    QJsonArray jsonArray = doc.array();
-    auto wrapper = new SWGQObjectWrapper<QList<SWGPet*>*> (output);
-    wrapper->deleteLater();
-    foreach(QJsonValue obj, jsonArray) {
-        SWGPet* o = new SWGPet();
-        QJsonObject jv = obj.toObject();
-        QJsonObject * ptr = (QJsonObject*)&jv;
-        o->fromJsonObject(*ptr);
-        auto objwrapper = new SWGQObjectWrapper<SWGPet*> (o);
-        objwrapper->deleteLater();
-        output->append(o);
-    }
-    worker->deleteLater();
+    result = QList<SWGPet>();
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    QJsonArray const jsonArray = doc.array();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit findPetsByStatusSignal(output);
+    Q_FOREACH(QJsonValue const &obj, jsonArray) {
+        SWGPet o = fromJsonValue<SWGPet>(obj);
+        result.append(o);
+    }
+
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->findPetsByStatusSignal(result);
     } else {
-        emit findPetsByStatusSignalE(output, error_type, error_str);
-        emit findPetsByStatusSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->findPetsByStatusSignalE(result, error_type, error_str);
+        Q_EMIT api->findPetsByStatusSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGPetApi::findPetsByTags(QList<QString*>* tags) {
+QSharedPointer<SWGFindPetsByTagsReply> SWGPetApi::findPetsByTags(QList<QString> const &tags) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet/findByTags");
+    fullPath.append(config.baseUrl).append("/pet/findByTags");
 
 
 
 
-    if (tags->size() > 0) {
+    if (tags.size() > 0) {
       if (QString("csv").indexOf("multi") == 0) {
-        foreach(QString* t, *tags) {
+        Q_FOREACH(QString t, tags) {
           if (fullPath.indexOf("?") > 0)
             fullPath.append("&");
           else
@@ -267,7 +237,7 @@ SWGPetApi::findPetsByTags(QList<QString*>* tags) {
           fullPath.append("?");
         fullPath.append("tags=");
         qint32 count = 0;
-        foreach(QString* t, *tags) {
+        Q_FOREACH(QString t, tags) {
           if (count > 0) {
             fullPath.append(" ");
           }
@@ -281,7 +251,7 @@ SWGPetApi::findPetsByTags(QList<QString*>* tags) {
           fullPath.append("?");
         fullPath.append("tags=");
         qint32 count = 0;
-        foreach(QString* t, *tags) {
+        Q_FOREACH(QString t, tags) {
           if (count > 0) {
             fullPath.append("\t");
           }
@@ -291,181 +261,156 @@ SWGPetApi::findPetsByTags(QList<QString*>* tags) {
     }
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGFindPetsByTagsReply> worker(new SWGFindPetsByTagsReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "GET");
 
 
 
 
+    // TODO: complete authMethods support
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::findPetsByTagsCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGFindPetsByTagsReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::findPetsByTagsCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGFindPetsByTagsReply::SWGFindPetsByTagsReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGFindPetsByTagsReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("findPetsByTags", error_type, msg);
     }
 
-    QList<SWGPet*>* output = new QList<SWGPet*>();
-    QString json(worker->response);
-    QByteArray array (json.toStdString().c_str());
-    QJsonDocument doc = QJsonDocument::fromJson(array);
-    QJsonArray jsonArray = doc.array();
-    auto wrapper = new SWGQObjectWrapper<QList<SWGPet*>*> (output);
-    wrapper->deleteLater();
-    foreach(QJsonValue obj, jsonArray) {
-        SWGPet* o = new SWGPet();
-        QJsonObject jv = obj.toObject();
-        QJsonObject * ptr = (QJsonObject*)&jv;
-        o->fromJsonObject(*ptr);
-        auto objwrapper = new SWGQObjectWrapper<SWGPet*> (o);
-        objwrapper->deleteLater();
-        output->append(o);
-    }
-    worker->deleteLater();
+    result = QList<SWGPet>();
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    QJsonArray const jsonArray = doc.array();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit findPetsByTagsSignal(output);
+    Q_FOREACH(QJsonValue const &obj, jsonArray) {
+        SWGPet o = fromJsonValue<SWGPet>(obj);
+        result.append(o);
+    }
+
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->findPetsByTagsSignal(result);
     } else {
-        emit findPetsByTagsSignalE(output, error_type, error_str);
-        emit findPetsByTagsSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->findPetsByTagsSignalE(result, error_type, error_str);
+        Q_EMIT api->findPetsByTagsSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGPetApi::getPetById(qint64 pet_id) {
+QSharedPointer<SWGGetPetByIdReply> SWGPetApi::getPetById(qint64 const &pet_id) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet/{petId}");
+    fullPath.append(config.baseUrl).append("/pet/{petId}");
 
     QString pet_idPathParam("{"); pet_idPathParam.append("petId").append("}");
     fullPath.replace(pet_idPathParam, stringValue(pet_id));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGGetPetByIdReply> worker(new SWGGetPetByIdReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "GET");
 
 
 
 
+    // TODO: complete authMethods support
+    if (config.headerAuth.contains("api_key")) input.headers.insert("api_key", config.headerAuth["api_key"]);
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::getPetByIdCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGGetPetByIdReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::getPetByIdCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGGetPetByIdReply::SWGGetPetByIdReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGGetPetByIdReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("getPetById", error_type, msg);
     }
 
-    QString json(worker->response);
-    SWGPet* output = static_cast<SWGPet*>(create(json, QString("SWGPet")));
-    auto wrapper = new SWGQObjectWrapper<SWGPet*> (output);
-    wrapper->deleteLater();
-    worker->deleteLater();
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    result = fromJsonValue<SWGPet>(QJsonValue(doc.object()));
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit getPetByIdSignal(output);
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->getPetByIdSignal(result);
     } else {
-        emit getPetByIdSignalE(output, error_type, error_str);
-        emit getPetByIdSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->getPetByIdSignalE(result, error_type, error_str);
+        Q_EMIT api->getPetByIdSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGPetApi::updatePet(SWGPet& body) {
+QSharedPointer<SWGUpdatePetReply> SWGPetApi::updatePet(SWGPet const &body) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet");
+    fullPath.append(config.baseUrl).append("/pet");
 
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGUpdatePetReply> worker(new SWGUpdatePetReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "PUT");
 
 
-    
     QString output = body.asJson();
     input.request_body.append(output);
     
 
+    // TODO: complete authMethods support
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::updatePetCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGUpdatePetReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::updatePetCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGUpdatePetReply::SWGUpdatePetReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGUpdatePetReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("updatePet", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit updatePetSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->updatePetSignal();
     } else {
-        emit updatePetSignalE(error_type, error_str);
-        emit updatePetSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->updatePetSignalE(error_type, error_str);
+        Q_EMIT api->updatePetSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGPetApi::updatePetWithForm(qint64 pet_id, QString* name, QString* status) {
+QSharedPointer<SWGUpdatePetWithFormReply> SWGPetApi::updatePetWithForm(qint64 const &pet_id, QString const &name, QString const &status) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet/{petId}");
+    fullPath.append(config.baseUrl).append("/pet/{petId}");
 
     QString pet_idPathParam("{"); pet_idPathParam.append("petId").append("}");
     fullPath.replace(pet_idPathParam, stringValue(pet_id));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGUpdatePetWithFormReply> worker(new SWGUpdatePetWithFormReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "POST");
 
     if (name != nullptr) {
@@ -477,52 +422,47 @@ SWGPetApi::updatePetWithForm(qint64 pet_id, QString* name, QString* status) {
 
 
 
+    // TODO: complete authMethods support
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::updatePetWithFormCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGUpdatePetWithFormReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::updatePetWithFormCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGUpdatePetWithFormReply::SWGUpdatePetWithFormReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGUpdatePetWithFormReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("updatePetWithForm", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit updatePetWithFormSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->updatePetWithFormSignal();
     } else {
-        emit updatePetWithFormSignalE(error_type, error_str);
-        emit updatePetWithFormSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->updatePetWithFormSignalE(error_type, error_str);
+        Q_EMIT api->updatePetWithFormSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGPetApi::uploadFile(qint64 pet_id, QString* additional_metadata, SWGHttpRequestInputFileElement* file) {
+QSharedPointer<SWGUploadFileReply> SWGPetApi::uploadFile(qint64 const &pet_id, QString const &additional_metadata, SWGHttpRequestInputFileElement const &file) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/pet/{petId}/uploadImage");
+    fullPath.append(config.baseUrl).append("/pet/{petId}/uploadImage");
 
     QString pet_idPathParam("{"); pet_idPathParam.append("petId").append("}");
     fullPath.replace(pet_idPathParam, stringValue(pet_id));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGUploadFileReply> worker(new SWGUploadFileReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "POST");
 
     if (additional_metadata != nullptr) {
@@ -534,43 +474,37 @@ SWGPetApi::uploadFile(qint64 pet_id, QString* additional_metadata, SWGHttpReques
 
 
 
+    // TODO: complete authMethods support
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGPetApi::uploadFileCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGUploadFileReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGPetApi::uploadFileCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGUploadFileReply::SWGUploadFileReply(SWGPetApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGUploadFileReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->petError("uploadFile", error_type, msg);
     }
 
-    QString json(worker->response);
-    SWGApiResponse* output = static_cast<SWGApiResponse*>(create(json, QString("SWGApiResponse")));
-    auto wrapper = new SWGQObjectWrapper<SWGApiResponse*> (output);
-    wrapper->deleteLater();
-    worker->deleteLater();
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    result = fromJsonValue<SWGApiResponse>(QJsonValue(doc.object()));
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit uploadFileSignal(output);
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->uploadFileSignal(result);
     } else {
-        emit uploadFileSignalE(output, error_type, error_str);
-        emit uploadFileSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->uploadFileSignalE(result, error_type, error_str);
+        Q_EMIT api->uploadFileSignalEFull(this, error_type, error_str);
     }
 }
 

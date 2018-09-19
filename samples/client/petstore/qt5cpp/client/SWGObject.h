@@ -13,29 +13,34 @@
 #ifndef _SWG_OBJECT_H_
 #define _SWG_OBJECT_H_
 
+#include <QSharedPointer>
+#include <QJsonValue>
 #include <QJsonObject>
+#include <QJsonDocument>
 
 namespace Swagger {
 
 class SWGObject {
-  public:
-    virtual QJsonObject asJsonObject() {
-      return QJsonObject();
-    }
+public:
     virtual ~SWGObject() {}
-    virtual SWGObject* fromJson(QString jsonString) {
-        Q_UNUSED(jsonString);
-        return new SWGObject();
+
+    virtual QString asJson () const {
+        return QJsonDocument(mGenericData).toJson(QJsonDocument::Compact);
     }
-    virtual void fromJsonObject(QJsonObject json) {
-        Q_UNUSED(json);
+    virtual QJsonObject asJsonObject() const {
+        return mGenericData;
     }
-    virtual QString asJson() {
-        return QString("");
+    virtual void fromJsonObject(QJsonObject const &json) {
+        mGenericData = json;
     }
-    virtual bool isSet() {
-        return false;
+    virtual void fromJson(QString const &jsonString) {
+        mGenericData = QJsonDocument::fromJson(jsonString.toLocal8Bit()).object();
     }
+    virtual bool isSet() const {
+        return mGenericData.isEmpty();
+    }
+protected:
+    QJsonObject mGenericData;
 };
 
 }

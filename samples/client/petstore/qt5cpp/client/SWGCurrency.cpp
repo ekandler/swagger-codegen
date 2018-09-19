@@ -11,7 +11,7 @@
  */
 
 
-#include "SWGTag.h"
+#include "SWGCurrency.h"
 
 #include "SWGHelpers.h"
 
@@ -24,45 +24,37 @@ namespace Swagger {
 
 
 
-SWGTag::SWGTag(QString const &json) {
+SWGCurrency::SWGCurrency(QString const &json) {
     init();
     this->fromJson(json);
 }
 
-SWGTag::SWGTag() {
+SWGCurrency::SWGCurrency() {
     init();
 }
 
-SWGTag::~SWGTag() {
+SWGCurrency::~SWGCurrency() {
     this->cleanup();
 }
 
-void SWGTag::init() {
-    id = 0L;
-    id_isSet = false;}
+void SWGCurrency::init() {
+    }
 
-void SWGTag::cleanup() {
+void SWGCurrency::cleanup() {
 }
 
-void SWGTag::fromJson(QString const &json) {
+void SWGCurrency::fromJson(QString const &json) {
     QByteArray array (json.toStdString().c_str());
     QJsonDocument doc = QJsonDocument::fromJson(array);
     QJsonObject jsonObject = doc.object();
     this->fromJsonObject(jsonObject);
 }
 
-void SWGTag::fromJsonObject(QJsonObject const &pJson) {
+void SWGCurrency::fromJsonObject(QJsonObject const &pJson) {
     mGenericData = pJson;
-    
-    id_isSet = pJson.contains("id");
-    id = fromJsonValue<qint64>(pJson["id"]);
+    }
 
-
-    name = fromJsonValue<QString>(pJson["name"]);
-
-}
-
-QString SWGTag::asJson () const
+QString SWGCurrency::asJson () const
 {
     QJsonObject const obj = this->asJsonObject();
     QJsonDocument doc(obj);
@@ -70,41 +62,16 @@ QString SWGTag::asJson () const
     return QString(bytes);
 }
 
-QJsonObject SWGTag::asJsonObject() const {
+QJsonObject SWGCurrency::asJsonObject() const {
     QJsonObject obj;
     
-    obj.insert("id", QJsonValue(id));
-
-    obj.insert("name", toJsonValue(name));
-
     return obj;
 }
 
 
-qint64 SWGTag::getId() const {
-    return id;
-}
-void SWGTag::setId(qint64 const &id) {
-    this->id = id;
-    this->id_isSet = true;
-}
-
-
-QString SWGTag::getName() const {
-    return name;
-}
-void SWGTag::setName(QString const &name) {
-    this->name = name;
-}
-
-
-bool SWGTag::isSet() const{
+bool SWGCurrency::isSet() const{
     bool isObjectUpdated = false;
     do{
-        
-        if(id_isSet){ isObjectUpdated = true; break;}
-        
-        if(!name.isNull()){ isObjectUpdated = true; break;}
     }while(false);
     return isObjectUpdated;
 }

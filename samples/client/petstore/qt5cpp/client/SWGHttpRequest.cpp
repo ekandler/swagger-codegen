@@ -56,10 +56,14 @@ SWGHttpRequestWorker::SWGHttpRequestWorker(QObject *parent)
     qsrand(QDateTime::currentDateTime().toTime_t());
 
     manager = new QNetworkAccessManager(this);
-    connect(manager, &QNetworkAccessManager::finished, this, &SWGHttpRequestWorker::on_manager_finished);
 }
 
 SWGHttpRequestWorker::~SWGHttpRequestWorker() {
+
+    if (reply) {
+        reply->deleteLater();
+        reply = nullptr;
+    }
 }
 
 QString SWGHttpRequestWorker::http_attribute_encode(QString attribute_name, QString input) {
@@ -110,12 +114,16 @@ QString SWGHttpRequestWorker::http_attribute_encode(QString attribute_name, QStr
     return QString("%1=\"%2\"; %1*=utf-8''%3").arg(attribute_name, result, result_utf8);
 }
 
-void SWGHttpRequestWorker::execute(SWGHttpRequestInput *input) {
+void SWGHttpRequestWorker::execute(SWGHttpRequestInput &input) {
 
     // reset variables
 
     QByteArray request_content = "";
-    response = "";
+    rawResponse = "";
+    if (reply) {
+        reply->deleteLater();
+        reply = nullptr;
+    }
     error_type = QNetworkReply::NoError;
     error_str = "";
     bool isFormData = false;
@@ -123,11 +131,11 @@ void SWGHttpRequestWorker::execute(SWGHttpRequestInput *input) {
 
     // decide on the variable layout
 
-    if (input->files.length() > 0) {
-        input->var_layout = MULTIPART;
+    if (input.files.length() > 0) {
+        input.var_layout = MULTIPART;
     }
-    if (input->var_layout == NOT_SET) {
-        input->var_layout = input->http_method == "GET" || input->http_method == "HEAD" ? ADDRESS : URL_ENCODED;
+    if (input.var_layout == NOT_SET) {
+        input.var_layout = input.http_method == "GET" || input.http_method == "HEAD" ? ADDRESS : URL_ENCODED;
     }
 
 
@@ -135,13 +143,13 @@ void SWGHttpRequestWorker::execute(SWGHttpRequestInput *input) {
 
     QString boundary = "";
 
-    if (input->var_layout == ADDRESS || input->var_layout == URL_ENCODED) {
+    if (input.var_layout == ADDRESS || input.var_layout == URL_ENCODED) {
         // variable layout is ADDRESS or URL_ENCODED
 
-        if (input->vars.count() > 0) {
+        if (input.vars.count() > 0) {
             bool first = true;
             isFormData = true;
-            foreach (QString key, input->vars.keys()) {
+            Q_FOREACH (QString key, input.vars.keys()) {
                 if (!first) {
                     request_content.append("&");
                 }
@@ -149,11 +157,11 @@ void SWGHttpRequestWorker::execute(SWGHttpRequestInput *input) {
 
                 request_content.append(QUrl::toPercentEncoding(key));
                 request_content.append("=");
-                request_content.append(QUrl::toPercentEncoding(input->vars.value(key)));
+                request_content.append(QUrl::toPercentEncoding(input.vars.value(key)));
             }
 
-            if (input->var_layout == ADDRESS) {
-                input->url_str += "?" + request_content;
+            if (input.var_layout == ADDRESS) {
+                input.url_str += "?" + request_content;
                 request_content = "";
             }
         }
@@ -168,7 +176,7 @@ void SWGHttpRequestWorker::execute(SWGHttpRequestInput *input) {
         QString new_line = "\r\n";
 
         // add variables
-        foreach (QString key, input->vars.keys()) {
+        Q_FOREACH (QString key, input.vars.keys()) {
             // add boundary
             request_content.append(boundary_delimiter);
             request_content.append(boundary);
@@ -185,12 +193,12 @@ void SWGHttpRequestWorker::execute(SWGHttpRequestInput *input) {
             request_content.append(new_line);
 
             // add variable content
-            request_content.append(input->vars.value(key));
+            request_content.append(input.vars.value(key));
             request_content.append(new_line);
         }
 
         // add files
-        for (QList<SWGHttpRequestInputFileElement>::iterator file_info = input->files.begin(); file_info != input->files.end(); file_info++) {
+        for (QList<SWGHttpRequestInputFileElement>::iterator file_info = input.files.begin(); file_info != input.files.end(); file_info++) {
             QFileInfo fi(file_info->local_filename);
 
             // ensure necessary variables are available
@@ -254,70 +262,71 @@ void SWGHttpRequestWorker::execute(SWGHttpRequestInput *input) {
         request_content.append(boundary_delimiter);
     }
 
-    if(input->request_body.size() > 0) {
-        qDebug() << "got a request body";
+    if(input.request_body.size() > 0) {
+        //qDebug() << "got a request body";
         request_content.clear();
-        request_content.append(input->request_body);
+        request_content.append(input.request_body);
     }
     // prepare connection
 
-    QNetworkRequest request = QNetworkRequest(QUrl(input->url_str));
+    QNetworkRequest request = QNetworkRequest(QUrl(input.url_str));
     if (SWGHttpRequestWorker::sslDefaultConfiguration != nullptr) {
         request.setSslConfiguration(*SWGHttpRequestWorker::sslDefaultConfiguration);
     }
     request.setRawHeader("User-Agent", "Swagger-Client");
-    foreach(QString key, input->headers.keys()) {
-        request.setRawHeader(key.toStdString().c_str(), input->headers.value(key).toStdString().c_str());
+    Q_FOREACH(QString key, input.headers.keys()) {
+        request.setRawHeader(key.toStdString().c_str(), input.headers.value(key).toStdString().c_str());
     }
 
     if (request_content.size() > 0 && !isFormData) {
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     }
-    else if (input->var_layout == URL_ENCODED) {
+    else if (input.var_layout == URL_ENCODED) {
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
     }
-    else if (input->var_layout == MULTIPART) {
-        request.setHeader(QNetworkRequest::ContentTypeHeader, "multipart/form-data; boundary=" + boundary);
+    else if (input.var_layout == MULTIPART) {
+        request.setHeader(QNetworkRequest::ContentTypeHeader, QString("multipart/form-data; boundary=" + boundary));
     }
 
-    if (input->http_method == "GET") {
-        manager->get(request);
+    if (input.http_method == "GET") {
+        reply = manager->get(request);
     }
-    else if (input->http_method == "POST") {
-        manager->post(request, request_content);
+    else if (input.http_method == "POST") {
+        reply = manager->post(request, request_content);
     }
-    else if (input->http_method == "PUT") {
-        manager->put(request, request_content);
+    else if (input.http_method == "PUT") {
+        reply = manager->put(request, request_content);
     }
-    else if (input->http_method == "HEAD") {
-        manager->head(request);
+    else if (input.http_method == "HEAD") {
+        reply = manager->head(request);
     }
-    else if (input->http_method == "DELETE") {
-        manager->deleteResource(request);
+    else if (input.http_method == "DELETE") {
+        reply = manager->deleteResource(request);
     }
     else {
 #if (QT_VERSION >= 0x050800)
-        manager->sendCustomRequest(request, input->http_method.toLatin1(), request_content);
+        reply = manager->sendCustomRequest(request, input.http_method.toLatin1(), request_content);
 #else
         QBuffer *buffer = new QBuffer;
         buffer->setData(request_content);
         buffer->open(QIODevice::ReadOnly);
 
-        QNetworkReply* reply = manager->sendCustomRequest(request, input->http_method.toLatin1(), buffer);
+        reply = manager->sendCustomRequest(request, input.http_method.toLatin1(), buffer);
         buffer->setParent(reply);
 #endif
     }
 
+    connect(reply, &QNetworkReply::finished, this, &SWGHttpRequestWorker::on_reply_finished);
 }
 
-void SWGHttpRequestWorker::on_manager_finished(QNetworkReply *reply) {
+void SWGHttpRequestWorker::on_reply_finished() {
     error_type = reply->error();
-    response = reply->readAll();
+    rawResponse = reply->readAll();
     error_str = reply->errorString();
 
-    reply->deleteLater();
-
-    emit on_execution_finished(this);
+    processResult();
+    if (error_type != QNetworkReply::NoError) Q_EMIT error(error_type);
+    Q_EMIT finished();
 }
 QSslConfiguration* SWGHttpRequestWorker::sslDefaultConfiguration;
 

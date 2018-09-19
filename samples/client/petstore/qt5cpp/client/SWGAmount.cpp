@@ -11,7 +11,7 @@
  */
 
 
-#include "SWGTag.h"
+#include "SWGAmount.h"
 
 #include "SWGHelpers.h"
 
@@ -24,45 +24,45 @@ namespace Swagger {
 
 
 
-SWGTag::SWGTag(QString const &json) {
+SWGAmount::SWGAmount(QString const &json) {
     init();
     this->fromJson(json);
 }
 
-SWGTag::SWGTag() {
+SWGAmount::SWGAmount() {
     init();
 }
 
-SWGTag::~SWGTag() {
+SWGAmount::~SWGAmount() {
     this->cleanup();
 }
 
-void SWGTag::init() {
-    id = 0L;
-    id_isSet = false;}
+void SWGAmount::init() {
+    value = 0.0;
+    value_isSet = false;}
 
-void SWGTag::cleanup() {
+void SWGAmount::cleanup() {
 }
 
-void SWGTag::fromJson(QString const &json) {
+void SWGAmount::fromJson(QString const &json) {
     QByteArray array (json.toStdString().c_str());
     QJsonDocument doc = QJsonDocument::fromJson(array);
     QJsonObject jsonObject = doc.object();
     this->fromJsonObject(jsonObject);
 }
 
-void SWGTag::fromJsonObject(QJsonObject const &pJson) {
+void SWGAmount::fromJsonObject(QJsonObject const &pJson) {
     mGenericData = pJson;
     
-    id_isSet = pJson.contains("id");
-    id = fromJsonValue<qint64>(pJson["id"]);
+    value_isSet = pJson.contains("value");
+    value = fromJsonValue<double>(pJson["value"]);
 
 
-    name = fromJsonValue<QString>(pJson["name"]);
+    currency = fromJsonValue<SWGCurrency>(pJson["currency"]);
 
 }
 
-QString SWGTag::asJson () const
+QString SWGAmount::asJson () const
 {
     QJsonObject const obj = this->asJsonObject();
     QJsonDocument doc(obj);
@@ -70,41 +70,41 @@ QString SWGTag::asJson () const
     return QString(bytes);
 }
 
-QJsonObject SWGTag::asJsonObject() const {
+QJsonObject SWGAmount::asJsonObject() const {
     QJsonObject obj;
     
-    obj.insert("id", QJsonValue(id));
+    obj.insert("value", QJsonValue(value));
 
-    obj.insert("name", toJsonValue(name));
+    obj.insert("currency", toJsonValue(currency));
 
     return obj;
 }
 
 
-qint64 SWGTag::getId() const {
-    return id;
+double SWGAmount::getValue() const {
+    return value;
 }
-void SWGTag::setId(qint64 const &id) {
-    this->id = id;
-    this->id_isSet = true;
-}
-
-
-QString SWGTag::getName() const {
-    return name;
-}
-void SWGTag::setName(QString const &name) {
-    this->name = name;
+void SWGAmount::setValue(double const &value) {
+    this->value = value;
+    this->value_isSet = true;
 }
 
 
-bool SWGTag::isSet() const{
+SWGCurrency SWGAmount::getCurrency() const {
+    return currency;
+}
+void SWGAmount::setCurrency(SWGCurrency const &currency) {
+    this->currency = currency;
+}
+
+
+bool SWGAmount::isSet() const{
     bool isObjectUpdated = false;
     do{
         
-        if(id_isSet){ isObjectUpdated = true; break;}
+        if(value_isSet){ isObjectUpdated = true; break;}
         
-        if(!name.isNull()){ isObjectUpdated = true; break;}
+        if(currency.isSet()){ isObjectUpdated = true; break;}
     }while(false);
     return isObjectUpdated;
 }

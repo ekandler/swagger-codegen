@@ -20,6 +20,7 @@
 #define SWGUser_H_
 
 #include <QJsonObject>
+#include <QStringList>
 
 
 #include <QString>
@@ -31,67 +32,77 @@ namespace Swagger {
 class SWGUser: public SWGObject {
 public:
     SWGUser();
-    SWGUser(QString json);
-    ~SWGUser();
+    SWGUser(QString const &json);
+    virtual ~SWGUser();
     void init();
     void cleanup();
 
-    QString asJson () override;
-    QJsonObject asJsonObject() override;
-    void fromJsonObject(QJsonObject json) override;
-    SWGUser* fromJson(QString jsonString) override;
+    QString asJson () const override;
+    QJsonObject asJsonObject() const override;
+    void fromJsonObject(QJsonObject const &json) override;
+    void fromJson(QString const &jsonString) override;
 
-    qint64 getId();
-    void setId(qint64 id);
+    
+    qint64 getId() const;
+    void setId(qint64 const &id);
 
-    QString* getUsername();
-    void setUsername(QString* username);
+    
+    QString getUsername() const;
+    void setUsername(QString const &username);
 
-    QString* getFirstName();
-    void setFirstName(QString* first_name);
+    
+    QString getFirstName() const;
+    void setFirstName(QString const &first_name);
 
-    QString* getLastName();
-    void setLastName(QString* last_name);
+    
+    QString getLastName() const;
+    void setLastName(QString const &last_name);
 
-    QString* getEmail();
-    void setEmail(QString* email);
+    
+    QString getEmail() const;
+    void setEmail(QString const &email);
 
-    QString* getPassword();
-    void setPassword(QString* password);
+    
+    QString getPassword() const;
+    void setPassword(QString const &password);
 
-    QString* getPhone();
-    void setPhone(QString* phone);
+    
+    QString getPhone() const;
+    void setPhone(QString const &phone);
 
-    qint32 getUserStatus();
-    void setUserStatus(qint32 user_status);
+    
+    qint32 getUserStatus() const;
+    void setUserStatus(qint32 const &user_status);
 
 
-    virtual bool isSet() override;
+    virtual bool isSet() const override;
 
 private:
+    
     qint64 id;
-    bool m_id_isSet;
+    bool id_isSet;
 
-    QString* username;
-    bool m_username_isSet;
+    
+    QString username;
 
-    QString* first_name;
-    bool m_first_name_isSet;
+    
+    QString first_name;
 
-    QString* last_name;
-    bool m_last_name_isSet;
+    
+    QString last_name;
 
-    QString* email;
-    bool m_email_isSet;
+    
+    QString email;
 
-    QString* password;
-    bool m_password_isSet;
+    
+    QString password;
 
-    QString* phone;
-    bool m_phone_isSet;
+    
+    QString phone;
 
+    
     qint32 user_status;
-    bool m_user_status_isSet;
+    bool user_status_isSet;
 
 };
 

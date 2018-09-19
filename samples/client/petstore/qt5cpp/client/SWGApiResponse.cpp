@@ -22,7 +22,9 @@
 
 namespace Swagger {
 
-SWGApiResponse::SWGApiResponse(QString json) {
+
+
+SWGApiResponse::SWGApiResponse(QString const &json) {
     init();
     this->fromJson(json);
 }
@@ -35,109 +37,89 @@ SWGApiResponse::~SWGApiResponse() {
     this->cleanup();
 }
 
-void
-SWGApiResponse::init() {
+void SWGApiResponse::init() {
     code = 0;
-    m_code_isSet = false;
-    type = new QString("");
-    m_type_isSet = false;
-    message = new QString("");
-    m_message_isSet = false;
+    code_isSet = false;}
+
+void SWGApiResponse::cleanup() {
 }
 
-void
-SWGApiResponse::cleanup() {
-
-    if(type != nullptr) { 
-        delete type;
-    }
-    if(message != nullptr) { 
-        delete message;
-    }
-}
-
-SWGApiResponse*
-SWGApiResponse::fromJson(QString json) {
+void SWGApiResponse::fromJson(QString const &json) {
     QByteArray array (json.toStdString().c_str());
     QJsonDocument doc = QJsonDocument::fromJson(array);
     QJsonObject jsonObject = doc.object();
     this->fromJsonObject(jsonObject);
-    return this;
 }
 
-void
-SWGApiResponse::fromJsonObject(QJsonObject pJson) {
-    ::Swagger::setValue(&code, pJson["code"], "qint32", "");
+void SWGApiResponse::fromJsonObject(QJsonObject const &pJson) {
+    mGenericData = pJson;
     
-    ::Swagger::setValue(&type, pJson["type"], "QString", "QString");
-    
-    ::Swagger::setValue(&message, pJson["message"], "QString", "QString");
-    
+    code_isSet = pJson.contains("code");
+    code = fromJsonValue<qint32>(pJson["code"]);
+
+
+    type = fromJsonValue<QString>(pJson["type"]);
+
+
+    message = fromJsonValue<QString>(pJson["message"]);
+
 }
 
-QString
-SWGApiResponse::asJson ()
+QString SWGApiResponse::asJson () const
 {
-    QJsonObject obj = this->asJsonObject();
+    QJsonObject const obj = this->asJsonObject();
     QJsonDocument doc(obj);
     QByteArray bytes = doc.toJson();
     return QString(bytes);
 }
 
-QJsonObject
-SWGApiResponse::asJsonObject() {
+QJsonObject SWGApiResponse::asJsonObject() const {
     QJsonObject obj;
-    if(m_code_isSet){
-        obj.insert("code", QJsonValue(code));
-    }
-    if(type != nullptr && *type != QString("")){
-        toJsonValue(QString("type"), type, obj, QString("QString"));
-    }
-    if(message != nullptr && *message != QString("")){
-        toJsonValue(QString("message"), message, obj, QString("QString"));
-    }
+    
+    obj.insert("code", QJsonValue(code));
+
+    obj.insert("type", toJsonValue(type));
+
+    obj.insert("message", toJsonValue(message));
 
     return obj;
 }
 
-qint32
-SWGApiResponse::getCode() {
+
+qint32 SWGApiResponse::getCode() const {
     return code;
 }
-void
-SWGApiResponse::setCode(qint32 code) {
+void SWGApiResponse::setCode(qint32 const &code) {
     this->code = code;
-    this->m_code_isSet = true;
+    this->code_isSet = true;
 }
 
-QString*
-SWGApiResponse::getType() {
+
+QString SWGApiResponse::getType() const {
     return type;
 }
-void
-SWGApiResponse::setType(QString* type) {
+void SWGApiResponse::setType(QString const &type) {
     this->type = type;
-    this->m_type_isSet = true;
 }
 
-QString*
-SWGApiResponse::getMessage() {
+
+QString SWGApiResponse::getMessage() const {
     return message;
 }
-void
-SWGApiResponse::setMessage(QString* message) {
+void SWGApiResponse::setMessage(QString const &message) {
     this->message = message;
-    this->m_message_isSet = true;
 }
 
 
-bool
-SWGApiResponse::isSet(){
+bool SWGApiResponse::isSet() const{
     bool isObjectUpdated = false;
     do{
-        if(m_code_isSet){ isObjectUpdated = true; break;}
-        if(type != nullptr && *type != QString("")){ isObjectUpdated = true; break;}
-        if(message != nullptr && *message != QString("")){ isObjectUpdated = true; break;}
+        
+        if(code_isSet){ isObjectUpdated = true; break;}
+        
+        if(!type.isNull()){ isObjectUpdated = true; break;}
+        
+        if(!message.isNull()){ isObjectUpdated = true; break;}
     }while(false);
     return isObjectUpdated;
 }

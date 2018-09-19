@@ -20,6 +20,7 @@
 #define SWGOrder_H_
 
 #include <QJsonObject>
+#include <QStringList>
 
 
 #include <QDateTime>
@@ -32,55 +33,69 @@ namespace Swagger {
 class SWGOrder: public SWGObject {
 public:
     SWGOrder();
-    SWGOrder(QString json);
-    ~SWGOrder();
+    SWGOrder(QString const &json);
+    virtual ~SWGOrder();
     void init();
     void cleanup();
 
-    QString asJson () override;
-    QJsonObject asJsonObject() override;
-    void fromJsonObject(QJsonObject json) override;
-    SWGOrder* fromJson(QString jsonString) override;
+    QString asJson () const override;
+    QJsonObject asJsonObject() const override;
+    void fromJsonObject(QJsonObject const &json) override;
+    void fromJson(QString const &jsonString) override;
 
-    qint64 getId();
-    void setId(qint64 id);
+    
+    qint64 getId() const;
+    void setId(qint64 const &id);
 
-    qint64 getPetId();
-    void setPetId(qint64 pet_id);
+    
+    qint64 getPetId() const;
+    void setPetId(qint64 const &pet_id);
 
-    qint32 getQuantity();
-    void setQuantity(qint32 quantity);
+    
+    qint32 getQuantity() const;
+    void setQuantity(qint32 const &quantity);
 
-    QDateTime* getShipDate();
-    void setShipDate(QDateTime* ship_date);
+    
+    QDateTime getShipDate() const;
+    void setShipDate(QDateTime const &ship_date);
 
-    QString* getStatus();
-    void setStatus(QString* status);
+    enum status { 
+        status_SWGUndefined=-1,
+        status_placed,
+        status_approved,
+        status_delivered
+    };
+    status getStatus() const;
+    void setStatus(status const &status);
+    
+    bool isComplete() const;
+    void setComplete(bool const &complete);
 
-    bool isComplete();
-    void setComplete(bool complete);
 
-
-    virtual bool isSet() override;
+    virtual bool isSet() const override;
 
 private:
+    
     qint64 id;
-    bool m_id_isSet;
+    bool id_isSet;
 
+    
     qint64 pet_id;
-    bool m_pet_id_isSet;
+    bool pet_id_isSet;
 
+    
     qint32 quantity;
-    bool m_quantity_isSet;
+    bool quantity_isSet;
 
-    QDateTime* ship_date;
-    bool m_ship_date_isSet;
+    
+    QDateTime ship_date;
 
-    QString* status;
-    bool m_status_isSet;
+    static QStringList data_status;
+    status status;
 
+    
     bool complete;
-    bool m_complete_isSet;
+    bool complete_isSet;
 
 };
 

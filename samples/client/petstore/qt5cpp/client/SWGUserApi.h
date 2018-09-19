@@ -14,6 +14,7 @@
 #define _SWG_SWGUserApi_H_
 
 #include "SWGHttpRequest.h"
+#include "SWGHelpers.h"
 
 #include <QList>
 #include <QString>
@@ -23,44 +24,41 @@
 
 namespace Swagger {
 
+class SWGCreateUserReply;
+class SWGCreateUsersWithArrayInputReply;
+class SWGCreateUsersWithListInputReply;
+class SWGDeleteUserReply;
+class SWGGetUserByNameReply;
+class SWGLoginUserReply;
+class SWGLogoutUserReply;
+class SWGUpdateUserReply;
+
 class SWGUserApi: public QObject {
     Q_OBJECT
 
 public:
-    SWGUserApi();
-    SWGUserApi(QString host, QString basePath);
+    SWGUserApi(QObject * parent = nullptr);
+    SWGUserApi(SWGClientConfig const &api, QObject * parent = nullptr);
     ~SWGUserApi();
 
-    QString host;
-    QString basePath;
-    QMap<QString, QString> defaultHeaders;
+    SWGClientConfig config;
 
-    void createUser(SWGUser& body);
-    void createUsersWithArrayInput(QList<SWGUser*>*& body);
-    void createUsersWithListInput(QList<SWGUser*>*& body);
-    void deleteUser(QString* username);
-    void getUserByName(QString* username);
-    void loginUser(QString* username, QString* password);
-    void logoutUser();
-    void updateUser(QString* username, SWGUser& body);
+    QSharedPointer<SWGCreateUserReply> createUser(SWGUser const &body);
+    QSharedPointer<SWGCreateUsersWithArrayInputReply> createUsersWithArrayInput(QList<SWGUser> const &body);
+    QSharedPointer<SWGCreateUsersWithListInputReply> createUsersWithListInput(QList<SWGUser> const &body);
+    QSharedPointer<SWGDeleteUserReply> deleteUser(QString const &username);
+    QSharedPointer<SWGGetUserByNameReply> getUserByName(QString const &username);
+    QSharedPointer<SWGLoginUserReply> loginUser(QString const &username, QString const &password);
+    QSharedPointer<SWGLogoutUserReply> logoutUser();
+    QSharedPointer<SWGUpdateUserReply> updateUser(QString const &username, SWGUser const &body);
     
-private:
-    void createUserCallback (SWGHttpRequestWorker * worker);
-    void createUsersWithArrayInputCallback (SWGHttpRequestWorker * worker);
-    void createUsersWithListInputCallback (SWGHttpRequestWorker * worker);
-    void deleteUserCallback (SWGHttpRequestWorker * worker);
-    void getUserByNameCallback (SWGHttpRequestWorker * worker);
-    void loginUserCallback (SWGHttpRequestWorker * worker);
-    void logoutUserCallback (SWGHttpRequestWorker * worker);
-    void updateUserCallback (SWGHttpRequestWorker * worker);
-    
-signals:
+Q_SIGNALS:
     void createUserSignal();
     void createUsersWithArrayInputSignal();
     void createUsersWithListInputSignal();
     void deleteUserSignal();
-    void getUserByNameSignal(SWGUser* summary);
-    void loginUserSignal(QString* summary);
+    void getUserByNameSignal(SWGUser summary);
+    void loginUserSignal(QString summary);
     void logoutUserSignal();
     void updateUserSignal();
     
@@ -68,8 +66,8 @@ signals:
     void createUsersWithArrayInputSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
     void createUsersWithListInputSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
     void deleteUserSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
-    void getUserByNameSignalE(SWGUser* summary, QNetworkReply::NetworkError error_type, QString& error_str);
-    void loginUserSignalE(QString* summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void getUserByNameSignalE(SWGUser summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void loginUserSignalE(QString summary, QNetworkReply::NetworkError error_type, QString& error_str);
     void logoutUserSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
     void updateUserSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
     
@@ -82,7 +80,75 @@ signals:
     void logoutUserSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     void updateUserSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     
+    void userError(QString operation, QNetworkReply::NetworkError error_type, QString errMsg);
 };
+
+class SWGCreateUserReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGCreateUserReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGUserApi * api;
+};
+
+class SWGCreateUsersWithArrayInputReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGCreateUsersWithArrayInputReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGUserApi * api;
+};
+
+class SWGCreateUsersWithListInputReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGCreateUsersWithListInputReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGUserApi * api;
+};
+
+class SWGDeleteUserReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGDeleteUserReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGUserApi * api;
+};
+
+class SWGGetUserByNameReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGGetUserByNameReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGUser result;
+    SWGUserApi * api;
+};
+
+class SWGLoginUserReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGLoginUserReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    QString result;
+    SWGUserApi * api;
+};
+
+class SWGLogoutUserReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGLogoutUserReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGUserApi * api;
+};
+
+class SWGUpdateUserReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGUpdateUserReply(SWGUserApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGUserApi * api;
+};
+
 
 }
 #endif

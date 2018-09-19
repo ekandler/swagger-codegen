@@ -17,18 +17,81 @@
 #include <QJsonValue>
 #include <QList>
 #include <QMap>
+#include <QVariant>
+#include <QDate>
+#include <QDateTime>
+#include <QByteArray>
+#include <QJsonArray>
 
 namespace Swagger {
 
-    void setValue(void* value, QJsonValue obj, QString type, QString complexType);
-    void toJsonArray(QList<void*>* value, QJsonObject& output, QString innerName, QString innerType);
-    void toJsonValue(QString name, void* value, QJsonObject& output, QString type);
-    void toJsonMap(QMap<QString, void*>* value, QJsonObject& output, QString innerName, QString innerType);
-    bool isCompatibleJsonValue(QString type);
-    QString stringValue(QString* value);
-    QString stringValue(qint32 value);
-    QString stringValue(qint64 value);
-    QString stringValue(bool value);
+class SWGClientConfig
+{
+public:
+    SWGClientConfig(QString baseUrl=QString());
+    QString baseUrl;
+    QMap<QString, QString> headerAuth;
+    QMap<QString, QString> defaultHeaders;
+};
+bool isCompatibleJsonValue(QString type);
+QString stringValue(QByteArray value);
+QString stringValue(QString value);
+QString stringValue(qint32 value);
+QString stringValue(qint64 value);
+QString stringValue(bool value);
+void toPrimitiveValue(QString &output, QString const &value);
+void toPrimitiveValue(qint32 &output, QString const &value);
+void toPrimitiveValue(qint64 &output, QString const &value);
+void toPrimitiveValue(bool &output, QString const &value);
+
+
+template <typename T> // swgObjects
+inline T fromJsonValue(QJsonValue const &value) {
+    QJsonObject jsonObj = value.toObject();
+    T so;
+    so.fromJsonObject(jsonObj);
+    return so;
+}
+template <> inline QDate fromJsonValue<QDate>(QJsonValue const &value) {return QDate::fromString(value.toString(), Qt::ISODate);}
+template <> inline QDateTime fromJsonValue<QDateTime>(QJsonValue const &value) {return QDateTime::fromString(value.toString(), Qt::ISODate);}
+template <> inline QByteArray fromJsonValue<QByteArray>(QJsonValue const &value) {return value.toString().toUtf8();}
+template <> inline QString fromJsonValue<QString>(QJsonValue const &value) {return value.toString();}
+template <> inline qint32 fromJsonValue<qint32>(QJsonValue const &value)  {return value.toInt();}
+template <> inline qint64 fromJsonValue<qint64>(QJsonValue const &value)  {return value.toVariant().toLongLong();}
+template <> inline bool fromJsonValue<bool>(QJsonValue const &value)    {return value.toBool();}
+template <> inline float fromJsonValue<float>(QJsonValue const &value)   {return value.toDouble();}
+template <> inline double fromJsonValue<double>(QJsonValue const &value)  {return value.toDouble();}
+
+template <typename U>
+inline U containerFromJsonValue(QJsonValue const &value) {
+    U output;
+    QJsonArray arr = value.toArray();
+    for (const QJsonValue & jval : arr) {
+        output.append(fromJsonValue<typename U::value_type>(jval));
+    }
+    return output;
+}
+
+template <typename T> QJsonValue toJsonValue(T const &value) { return value.asJsonObject();}
+template <> inline QJsonValue toJsonValue<QDate>(QDate const &value) { return QJsonValue(value.toString(Qt::ISODate));}
+template <> inline QJsonValue toJsonValue<QDateTime>(QDateTime const &value) { return QJsonValue(value.toString(Qt::ISODate));}
+template <> inline QJsonValue toJsonValue<QByteArray>(QByteArray const &value) { return QString(value);}
+template <> inline QJsonValue toJsonValue<QString>(QString const &value) { return value; }
+template <> inline QJsonValue toJsonValue<qint32>(qint32 const &value) { return value; }
+template <> inline QJsonValue toJsonValue<qint64>(qint64 const &value) { return value; }
+template <> inline QJsonValue toJsonValue<bool>(bool const &value) { return value; }
+template <> inline QJsonValue toJsonValue<float>(float const &value) { return value; }
+template <> inline QJsonValue toJsonValue<double>(double const &value) { return value; }
+
+template <typename T>
+inline QJsonArray toJsonArray(QList<T> const &list) {
+    QJsonArray arr;
+    for (T const &elem : list) {
+        arr.append(toJsonValue(elem));
+    }
+    return arr;
+}
+
 
 }
 

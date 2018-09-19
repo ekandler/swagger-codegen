@@ -14,6 +14,7 @@
 #define _SWG_SWGStoreApi_H_
 
 #include "SWGHttpRequest.h"
+#include "SWGHelpers.h"
 
 #include <QMap>
 #include <QString>
@@ -23,46 +24,80 @@
 
 namespace Swagger {
 
+class SWGDeleteOrderReply;
+class SWGGetInventoryReply;
+class SWGGetOrderByIdReply;
+class SWGPlaceOrderReply;
+
 class SWGStoreApi: public QObject {
     Q_OBJECT
 
 public:
-    SWGStoreApi();
-    SWGStoreApi(QString host, QString basePath);
+    SWGStoreApi(QObject * parent = nullptr);
+    SWGStoreApi(SWGClientConfig const &api, QObject * parent = nullptr);
     ~SWGStoreApi();
 
-    QString host;
-    QString basePath;
-    QMap<QString, QString> defaultHeaders;
+    SWGClientConfig config;
 
-    void deleteOrder(QString* order_id);
-    void getInventory();
-    void getOrderById(qint64 order_id);
-    void placeOrder(SWGOrder& body);
+    QSharedPointer<SWGDeleteOrderReply> deleteOrder(QString const &order_id);
+    QSharedPointer<SWGGetInventoryReply> getInventory();
+    QSharedPointer<SWGGetOrderByIdReply> getOrderById(qint64 const &order_id);
+    QSharedPointer<SWGPlaceOrderReply> placeOrder(SWGOrder const &body);
     
-private:
-    void deleteOrderCallback (SWGHttpRequestWorker * worker);
-    void getInventoryCallback (SWGHttpRequestWorker * worker);
-    void getOrderByIdCallback (SWGHttpRequestWorker * worker);
-    void placeOrderCallback (SWGHttpRequestWorker * worker);
-    
-signals:
+Q_SIGNALS:
     void deleteOrderSignal();
-    void getInventorySignal(QMap<QString, qint32>* summary);
-    void getOrderByIdSignal(SWGOrder* summary);
-    void placeOrderSignal(SWGOrder* summary);
+    void getInventorySignal(QMap<QString, qint32> summary);
+    void getOrderByIdSignal(SWGOrder summary);
+    void placeOrderSignal(SWGOrder summary);
     
     void deleteOrderSignalE(QNetworkReply::NetworkError error_type, QString& error_str);
-    void getInventorySignalE(QMap<QString, qint32>* summary, QNetworkReply::NetworkError error_type, QString& error_str);
-    void getOrderByIdSignalE(SWGOrder* summary, QNetworkReply::NetworkError error_type, QString& error_str);
-    void placeOrderSignalE(SWGOrder* summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void getInventorySignalE(QMap<QString, qint32> summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void getOrderByIdSignalE(SWGOrder summary, QNetworkReply::NetworkError error_type, QString& error_str);
+    void placeOrderSignalE(SWGOrder summary, QNetworkReply::NetworkError error_type, QString& error_str);
     
     void deleteOrderSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     void getInventorySignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     void getOrderByIdSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     void placeOrderSignalEFull(SWGHttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     
+    void storeError(QString operation, QNetworkReply::NetworkError error_type, QString errMsg);
 };
+
+class SWGDeleteOrderReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGDeleteOrderReply(SWGStoreApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGStoreApi * api;
+};
+
+class SWGGetInventoryReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGGetInventoryReply(SWGStoreApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    QMap<QString, qint32> result;
+    SWGStoreApi * api;
+};
+
+class SWGGetOrderByIdReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGGetOrderByIdReply(SWGStoreApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGOrder result;
+    SWGStoreApi * api;
+};
+
+class SWGPlaceOrderReply : public SWGHttpRequestWorker {
+    Q_OBJECT
+public:
+    SWGPlaceOrderReply(SWGStoreApi * api, QObject * parent = nullptr);
+    virtual void processResult() override;
+    SWGOrder result;
+    SWGStoreApi * api;
+};
+
 
 }
 #endif

@@ -20,6 +20,7 @@
 #define SWGPet_H_
 
 #include <QJsonObject>
+#include <QStringList>
 
 
 #include "SWGCategory.h"
@@ -34,55 +35,66 @@ namespace Swagger {
 class SWGPet: public SWGObject {
 public:
     SWGPet();
-    SWGPet(QString json);
-    ~SWGPet();
+    SWGPet(QString const &json);
+    virtual ~SWGPet();
     void init();
     void cleanup();
 
-    QString asJson () override;
-    QJsonObject asJsonObject() override;
-    void fromJsonObject(QJsonObject json) override;
-    SWGPet* fromJson(QString jsonString) override;
+    QString asJson () const override;
+    QJsonObject asJsonObject() const override;
+    void fromJsonObject(QJsonObject const &json) override;
+    void fromJson(QString const &jsonString) override;
 
-    qint64 getId();
-    void setId(qint64 id);
+    
+    qint64 getId() const;
+    void setId(qint64 const &id);
 
-    SWGCategory* getCategory();
-    void setCategory(SWGCategory* category);
+    
+    SWGCategory getCategory() const;
+    void setCategory(SWGCategory const &category);
 
-    QString* getName();
-    void setName(QString* name);
+    
+    QString getName() const;
+    void setName(QString const &name);
 
-    QList<QString*>* getPhotoUrls();
-    void setPhotoUrls(QList<QString*>* photo_urls);
+    
+    QList<QString> getPhotoUrls() const;
+    void setPhotoUrls(QList<QString> const &photo_urls);
 
-    QList<SWGTag*>* getTags();
-    void setTags(QList<SWGTag*>* tags);
+    
+    QList<SWGTag> getTags() const;
+    void setTags(QList<SWGTag> const &tags);
 
-    QString* getStatus();
-    void setStatus(QString* status);
+    enum status { 
+        status_SWGUndefined=-1,
+        status_available,
+        status_pending,
+        status_sold
+    };
+    status getStatus() const;
+    void setStatus(status const &status);
 
-
-    virtual bool isSet() override;
+    virtual bool isSet() const override;
 
 private:
+    
     qint64 id;
-    bool m_id_isSet;
+    bool id_isSet;
 
-    SWGCategory* category;
-    bool m_category_isSet;
+    
+    SWGCategory category;
 
-    QString* name;
-    bool m_name_isSet;
+    
+    QString name;
 
-    QList<QString*>* photo_urls;
-    bool m_photo_urls_isSet;
+    
+    QList<QString> photo_urls;
 
-    QList<SWGTag*>* tags;
-    bool m_tags_isSet;
+    
+    QList<SWGTag> tags;
 
-    QString* status;
-    bool m_status_isSet;
+    static QStringList data_status;
+    status status;
 
 };
 

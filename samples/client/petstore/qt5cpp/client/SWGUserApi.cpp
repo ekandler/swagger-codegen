@@ -12,297 +12,254 @@
 
 #include "SWGUserApi.h"
 #include "SWGHelpers.h"
-#include "SWGModelFactory.h"
-#include "SWGQObjectWrapper.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 
 namespace Swagger {
 
-SWGUserApi::SWGUserApi() {}
+SWGUserApi::SWGUserApi(QObject * parent) : QObject(parent) {}
 
 SWGUserApi::~SWGUserApi() {}
 
-SWGUserApi::SWGUserApi(QString host, QString basePath) {
-    this->host = host;
-    this->basePath = basePath;
-}
+SWGUserApi::SWGUserApi(SWGClientConfig const &config, QObject * parent) : QObject(parent), config(config) {}
 
-void
-SWGUserApi::createUser(SWGUser& body) {
+QSharedPointer<SWGCreateUserReply> SWGUserApi::createUser(SWGUser const &body) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user");
+    fullPath.append(config.baseUrl).append("/user");
 
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGCreateUserReply> worker(new SWGCreateUserReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "POST");
 
 
-    
     QString output = body.asJson();
     input.request_body.append(output);
     
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::createUserCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGCreateUserReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::createUserCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGCreateUserReply::SWGCreateUserReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGCreateUserReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("createUser", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit createUserSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->createUserSignal();
     } else {
-        emit createUserSignalE(error_type, error_str);
-        emit createUserSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->createUserSignalE(error_type, error_str);
+        Q_EMIT api->createUserSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGUserApi::createUsersWithArrayInput(QList<SWGUser*>*& body) {
+QSharedPointer<SWGCreateUsersWithArrayInputReply> SWGUserApi::createUsersWithArrayInput(QList<SWGUser> const &body) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user/createWithArray");
+    fullPath.append(config.baseUrl).append("/user/createWithArray");
 
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGCreateUsersWithArrayInputReply> worker(new SWGCreateUsersWithArrayInputReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "POST");
 
 
-    QJsonObject body_jobj;
-    toJsonArray((QList<void*>*)body, body_jobj, QString("body"), QString("SWGUser*"));
-
-    QJsonDocument doc(body_jobj);
+    QJsonArray bodyArray = toJsonArray(body);
+    QJsonDocument doc(bodyArray);
     QByteArray bytes = doc.toJson();
 
     input.request_body.append(bytes);
-    
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::createUsersWithArrayInputCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGCreateUsersWithArrayInputReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::createUsersWithArrayInputCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGCreateUsersWithArrayInputReply::SWGCreateUsersWithArrayInputReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGCreateUsersWithArrayInputReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("createUsersWithArrayInput", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit createUsersWithArrayInputSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->createUsersWithArrayInputSignal();
     } else {
-        emit createUsersWithArrayInputSignalE(error_type, error_str);
-        emit createUsersWithArrayInputSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->createUsersWithArrayInputSignalE(error_type, error_str);
+        Q_EMIT api->createUsersWithArrayInputSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGUserApi::createUsersWithListInput(QList<SWGUser*>*& body) {
+QSharedPointer<SWGCreateUsersWithListInputReply> SWGUserApi::createUsersWithListInput(QList<SWGUser> const &body) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user/createWithList");
+    fullPath.append(config.baseUrl).append("/user/createWithList");
 
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGCreateUsersWithListInputReply> worker(new SWGCreateUsersWithListInputReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "POST");
 
 
-    QJsonObject body_jobj;
-    toJsonArray((QList<void*>*)body, body_jobj, QString("body"), QString("SWGUser*"));
-
-    QJsonDocument doc(body_jobj);
+    QJsonArray bodyArray = toJsonArray(body);
+    QJsonDocument doc(bodyArray);
     QByteArray bytes = doc.toJson();
 
     input.request_body.append(bytes);
-    
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::createUsersWithListInputCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGCreateUsersWithListInputReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::createUsersWithListInputCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGCreateUsersWithListInputReply::SWGCreateUsersWithListInputReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGCreateUsersWithListInputReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("createUsersWithListInput", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit createUsersWithListInputSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->createUsersWithListInputSignal();
     } else {
-        emit createUsersWithListInputSignalE(error_type, error_str);
-        emit createUsersWithListInputSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->createUsersWithListInputSignalE(error_type, error_str);
+        Q_EMIT api->createUsersWithListInputSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGUserApi::deleteUser(QString* username) {
+QSharedPointer<SWGDeleteUserReply> SWGUserApi::deleteUser(QString const &username) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user/{username}");
+    fullPath.append(config.baseUrl).append("/user/{username}");
 
     QString usernamePathParam("{"); usernamePathParam.append("username").append("}");
     fullPath.replace(usernamePathParam, stringValue(username));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGDeleteUserReply> worker(new SWGDeleteUserReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "DELETE");
 
 
 
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::deleteUserCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGDeleteUserReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::deleteUserCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGDeleteUserReply::SWGDeleteUserReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGDeleteUserReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("deleteUser", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit deleteUserSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->deleteUserSignal();
     } else {
-        emit deleteUserSignalE(error_type, error_str);
-        emit deleteUserSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->deleteUserSignalE(error_type, error_str);
+        Q_EMIT api->deleteUserSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGUserApi::getUserByName(QString* username) {
+QSharedPointer<SWGGetUserByNameReply> SWGUserApi::getUserByName(QString const &username) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user/{username}");
+    fullPath.append(config.baseUrl).append("/user/{username}");
 
     QString usernamePathParam("{"); usernamePathParam.append("username").append("}");
     fullPath.replace(usernamePathParam, stringValue(username));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGGetUserByNameReply> worker(new SWGGetUserByNameReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "GET");
 
 
 
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::getUserByNameCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGGetUserByNameReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::getUserByNameCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGGetUserByNameReply::SWGGetUserByNameReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGGetUserByNameReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("getUserByName", error_type, msg);
     }
 
-    QString json(worker->response);
-    SWGUser* output = static_cast<SWGUser*>(create(json, QString("SWGUser")));
-    auto wrapper = new SWGQObjectWrapper<SWGUser*> (output);
-    wrapper->deleteLater();
-    worker->deleteLater();
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    result = fromJsonValue<SWGUser>(QJsonValue(doc.object()));
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit getUserByNameSignal(output);
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->getUserByNameSignal(result);
     } else {
-        emit getUserByNameSignalE(output, error_type, error_str);
-        emit getUserByNameSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->getUserByNameSignalE(result, error_type, error_str);
+        Q_EMIT api->getUserByNameSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGUserApi::loginUser(QString* username, QString* password) {
+QSharedPointer<SWGLoginUserReply> SWGUserApi::loginUser(QString const &username, QString const &password) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user/login");
+    fullPath.append(config.baseUrl).append("/user/login");
 
 
     if (fullPath.indexOf("?") > 0)
@@ -322,152 +279,132 @@ SWGUserApi::loginUser(QString* username, QString* password) {
         .append(QUrl::toPercentEncoding(stringValue(password)));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGLoginUserReply> worker(new SWGLoginUserReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "GET");
 
 
 
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::loginUserCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGLoginUserReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::loginUserCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGLoginUserReply::SWGLoginUserReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGLoginUserReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("loginUser", error_type, msg);
     }
 
-    QString json(worker->response);
-    QString* output = static_cast<QString*>(create(json, QString("QString")));
-    auto wrapper = new SWGQObjectWrapper<QString*> (output);
-    wrapper->deleteLater();
-    worker->deleteLater();
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    result = fromJsonValue<QString>(QJsonValue(doc.object()));
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit loginUserSignal(output);
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->loginUserSignal(result);
     } else {
-        emit loginUserSignalE(output, error_type, error_str);
-        emit loginUserSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->loginUserSignalE(result, error_type, error_str);
+        Q_EMIT api->loginUserSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGUserApi::logoutUser() {
+QSharedPointer<SWGLogoutUserReply> SWGUserApi::logoutUser() {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user/logout");
+    fullPath.append(config.baseUrl).append("/user/logout");
 
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGLogoutUserReply> worker(new SWGLogoutUserReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "GET");
 
 
 
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::logoutUserCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGLogoutUserReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::logoutUserCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGLogoutUserReply::SWGLogoutUserReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGLogoutUserReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("logoutUser", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit logoutUserSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->logoutUserSignal();
     } else {
-        emit logoutUserSignalE(error_type, error_str);
-        emit logoutUserSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->logoutUserSignalE(error_type, error_str);
+        Q_EMIT api->logoutUserSignalEFull(this, error_type, error_str);
     }
 }
 
-void
-SWGUserApi::updateUser(QString* username, SWGUser& body) {
+QSharedPointer<SWGUpdateUserReply> SWGUserApi::updateUser(QString const &username, SWGUser const &body) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("/user/{username}");
+    fullPath.append(config.baseUrl).append("/user/{username}");
 
     QString usernamePathParam("{"); usernamePathParam.append("username").append("}");
     fullPath.replace(usernamePathParam, stringValue(username));
 
 
-    SWGHttpRequestWorker *worker = new SWGHttpRequestWorker();
+    QSharedPointer<SWGUpdateUserReply> worker(new SWGUpdateUserReply(this, this), &QObject::deleteLater);
     SWGHttpRequestInput input(fullPath, "PUT");
 
 
-    
     QString output = body.asJson();
     input.request_body.append(output);
     
 
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &SWGHttpRequestWorker::on_execution_finished,
-            this,
-            &SWGUserApi::updateUserCallback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &SWGUpdateUserReply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-SWGUserApi::updateUserCallback(SWGHttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+SWGUpdateUserReply::SWGUpdateUserReply(SWGUserApi * api, QObject * parent ) : SWGHttpRequestWorker(parent), api(api) {}
+void SWGUpdateUserReply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->userError("updateUser", error_type, msg);
     }
 
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit updateUserSignal();
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->updateUserSignal();
     } else {
-        emit updateUserSignalE(error_type, error_str);
-        emit updateUserSignalEFull(worker, error_type, error_str);
+        Q_EMIT api->updateUserSignalE(error_type, error_str);
+        Q_EMIT api->updateUserSignalEFull(this, error_type, error_str);
     }
 }
 

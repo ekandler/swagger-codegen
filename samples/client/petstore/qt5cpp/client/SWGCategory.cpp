@@ -22,7 +22,9 @@
 
 namespace Swagger {
 
-SWGCategory::SWGCategory(QString json) {
+
+
+SWGCategory::SWGCategory(QString const &json) {
     init();
     this->fromJson(json);
 }
@@ -35,88 +37,74 @@ SWGCategory::~SWGCategory() {
     this->cleanup();
 }
 
-void
-SWGCategory::init() {
+void SWGCategory::init() {
     id = 0L;
-    m_id_isSet = false;
-    name = new QString("");
-    m_name_isSet = false;
+    id_isSet = false;}
+
+void SWGCategory::cleanup() {
 }
 
-void
-SWGCategory::cleanup() {
-
-    if(name != nullptr) { 
-        delete name;
-    }
-}
-
-SWGCategory*
-SWGCategory::fromJson(QString json) {
+void SWGCategory::fromJson(QString const &json) {
     QByteArray array (json.toStdString().c_str());
     QJsonDocument doc = QJsonDocument::fromJson(array);
     QJsonObject jsonObject = doc.object();
     this->fromJsonObject(jsonObject);
-    return this;
 }
 
-void
-SWGCategory::fromJsonObject(QJsonObject pJson) {
-    ::Swagger::setValue(&id, pJson["id"], "qint64", "");
+void SWGCategory::fromJsonObject(QJsonObject const &pJson) {
+    mGenericData = pJson;
     
-    ::Swagger::setValue(&name, pJson["name"], "QString", "QString");
-    
+    id_isSet = pJson.contains("id");
+    id = fromJsonValue<qint64>(pJson["id"]);
+
+
+    name = fromJsonValue<QString>(pJson["name"]);
+
 }
 
-QString
-SWGCategory::asJson ()
+QString SWGCategory::asJson () const
 {
-    QJsonObject obj = this->asJsonObject();
+    QJsonObject const obj = this->asJsonObject();
     QJsonDocument doc(obj);
     QByteArray bytes = doc.toJson();
     return QString(bytes);
 }
 
-QJsonObject
-SWGCategory::asJsonObject() {
+QJsonObject SWGCategory::asJsonObject() const {
     QJsonObject obj;
-    if(m_id_isSet){
-        obj.insert("id", QJsonValue(id));
-    }
-    if(name != nullptr && *name != QString("")){
-        toJsonValue(QString("name"), name, obj, QString("QString"));
-    }
+    
+    obj.insert("id", QJsonValue(id));
+
+    obj.insert("name", toJsonValue(name));
 
     return obj;
 }
 
-qint64
-SWGCategory::getId() {
+
+qint64 SWGCategory::getId() const {
     return id;
 }
-void
-SWGCategory::setId(qint64 id) {
+void SWGCategory::setId(qint64 const &id) {
     this->id = id;
-    this->m_id_isSet = true;
+    this->id_isSet = true;
 }
 
-QString*
-SWGCategory::getName() {
+
+QString SWGCategory::getName() const {
     return name;
 }
-void
-SWGCategory::setName(QString* name) {
+void SWGCategory::setName(QString const &name) {
     this->name = name;
-    this->m_name_isSet = true;
 }
 
 
-bool
-SWGCategory::isSet(){
+bool SWGCategory::isSet() const{
     bool isObjectUpdated = false;
     do{
-        if(m_id_isSet){ isObjectUpdated = true; break;}
-        if(name != nullptr && *name != QString("")){ isObjectUpdated = true; break;}
+        
+        if(id_isSet){ isObjectUpdated = true; break;}
+        
+        if(!name.isNull()){ isObjectUpdated = true; break;}
     }while(false);
     return isObjectUpdated;
 }

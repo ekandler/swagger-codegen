@@ -22,7 +22,13 @@
 
 namespace Swagger {
 
-SWGOrder::SWGOrder(QString json) {
+QStringList SWGOrder::data_status { 
+    "placed",
+    "approved",
+    "delivered"
+};
+
+SWGOrder::SWGOrder(QString const &json) {
     init();
     this->fromJson(json);
 }
@@ -35,166 +41,141 @@ SWGOrder::~SWGOrder() {
     this->cleanup();
 }
 
-void
-SWGOrder::init() {
+void SWGOrder::init() {
     id = 0L;
-    m_id_isSet = false;
-    pet_id = 0L;
-    m_pet_id_isSet = false;
-    quantity = 0;
-    m_quantity_isSet = false;
-    ship_date = NULL;
-    m_ship_date_isSet = false;
-    status = new QString("");
-    m_status_isSet = false;
-    complete = false;
-    m_complete_isSet = false;
+    id_isSet = false;pet_id = 0L;
+    pet_id_isSet = false;quantity = 0;
+    quantity_isSet = false;status = status_SWGUndefined;
+complete = false;
+    complete_isSet = false;}
+
+void SWGOrder::cleanup() {
 }
 
-void
-SWGOrder::cleanup() {
-
-
-
-    if(ship_date != nullptr) { 
-        delete ship_date;
-    }
-    if(status != nullptr) { 
-        delete status;
-    }
-
-}
-
-SWGOrder*
-SWGOrder::fromJson(QString json) {
+void SWGOrder::fromJson(QString const &json) {
     QByteArray array (json.toStdString().c_str());
     QJsonDocument doc = QJsonDocument::fromJson(array);
     QJsonObject jsonObject = doc.object();
     this->fromJsonObject(jsonObject);
-    return this;
 }
 
-void
-SWGOrder::fromJsonObject(QJsonObject pJson) {
-    ::Swagger::setValue(&id, pJson["id"], "qint64", "");
+void SWGOrder::fromJsonObject(QJsonObject const &pJson) {
+    mGenericData = pJson;
     
-    ::Swagger::setValue(&pet_id, pJson["petId"], "qint64", "");
-    
-    ::Swagger::setValue(&quantity, pJson["quantity"], "qint32", "");
-    
-    ::Swagger::setValue(&ship_date, pJson["shipDate"], "QDateTime", "QDateTime");
-    
-    ::Swagger::setValue(&status, pJson["status"], "QString", "QString");
-    
-    ::Swagger::setValue(&complete, pJson["complete"], "bool", "");
-    
+    id_isSet = pJson.contains("id");
+    id = fromJsonValue<qint64>(pJson["id"]);
+
+
+    pet_id_isSet = pJson.contains("petId");
+    pet_id = fromJsonValue<qint64>(pJson["petId"]);
+
+
+    quantity_isSet = pJson.contains("quantity");
+    quantity = fromJsonValue<qint32>(pJson["quantity"]);
+
+
+    ship_date = fromJsonValue<QDateTime>(pJson["shipDate"]);
+
+
+    status = status(data_status.indexOf(fromJsonValue<QString>(pJson["status"])));
+
+    complete_isSet = pJson.contains("complete");
+    complete = fromJsonValue<bool>(pJson["complete"]);
+
 }
 
-QString
-SWGOrder::asJson ()
+QString SWGOrder::asJson () const
 {
-    QJsonObject obj = this->asJsonObject();
+    QJsonObject const obj = this->asJsonObject();
     QJsonDocument doc(obj);
     QByteArray bytes = doc.toJson();
     return QString(bytes);
 }
 
-QJsonObject
-SWGOrder::asJsonObject() {
+QJsonObject SWGOrder::asJsonObject() const {
     QJsonObject obj;
-    if(m_id_isSet){
-        obj.insert("id", QJsonValue(id));
-    }
-    if(m_pet_id_isSet){
-        obj.insert("petId", QJsonValue(pet_id));
-    }
-    if(m_quantity_isSet){
-        obj.insert("quantity", QJsonValue(quantity));
-    }
-    if(ship_date != nullptr) { 
-        toJsonValue(QString("shipDate"), ship_date, obj, QString("QDateTime"));
-    }
-    if(status != nullptr && *status != QString("")){
-        toJsonValue(QString("status"), status, obj, QString("QString"));
-    }
-    if(m_complete_isSet){
-        obj.insert("complete", QJsonValue(complete));
-    }
+    
+    obj.insert("id", QJsonValue(id));
+
+    obj.insert("petId", QJsonValue(pet_id));
+
+    obj.insert("quantity", QJsonValue(quantity));
+
+    obj.insert("shipDate", toJsonValue(ship_date));
+
+    obj.insert("status", data_status.at(status));
+
+    obj.insert("complete", QJsonValue(complete));
 
     return obj;
 }
 
-qint64
-SWGOrder::getId() {
+
+qint64 SWGOrder::getId() const {
     return id;
 }
-void
-SWGOrder::setId(qint64 id) {
+void SWGOrder::setId(qint64 const &id) {
     this->id = id;
-    this->m_id_isSet = true;
+    this->id_isSet = true;
 }
 
-qint64
-SWGOrder::getPetId() {
+
+qint64 SWGOrder::getPetId() const {
     return pet_id;
 }
-void
-SWGOrder::setPetId(qint64 pet_id) {
+void SWGOrder::setPetId(qint64 const &pet_id) {
     this->pet_id = pet_id;
-    this->m_pet_id_isSet = true;
+    this->pet_id_isSet = true;
 }
 
-qint32
-SWGOrder::getQuantity() {
+
+qint32 SWGOrder::getQuantity() const {
     return quantity;
 }
-void
-SWGOrder::setQuantity(qint32 quantity) {
+void SWGOrder::setQuantity(qint32 const &quantity) {
     this->quantity = quantity;
-    this->m_quantity_isSet = true;
+    this->quantity_isSet = true;
 }
 
-QDateTime*
-SWGOrder::getShipDate() {
+
+QDateTime SWGOrder::getShipDate() const {
     return ship_date;
 }
-void
-SWGOrder::setShipDate(QDateTime* ship_date) {
+void SWGOrder::setShipDate(QDateTime const &ship_date) {
     this->ship_date = ship_date;
-    this->m_ship_date_isSet = true;
 }
 
-QString*
-SWGOrder::getStatus() {
+SWGOrder::status SWGOrder::getStatus() const {
     return status;
 }
-void
-SWGOrder::setStatus(QString* status) {
+void SWGOrder::setStatus(status const &status) {
     this->status = status;
-    this->m_status_isSet = true;
 }
 
-bool
-SWGOrder::isComplete() {
+
+bool SWGOrder::isComplete() const {
     return complete;
 }
-void
-SWGOrder::setComplete(bool complete) {
+void SWGOrder::setComplete(bool const &complete) {
     this->complete = complete;
-    this->m_complete_isSet = true;
+    this->complete_isSet = true;
 }
 
 
-bool
-SWGOrder::isSet(){
+bool SWGOrder::isSet() const{
     bool isObjectUpdated = false;
     do{
-        if(m_id_isSet){ isObjectUpdated = true; break;}
-        if(m_pet_id_isSet){ isObjectUpdated = true; break;}
-        if(m_quantity_isSet){ isObjectUpdated = true; break;}
         
-        if(status != nullptr && *status != QString("")){ isObjectUpdated = true; break;}
-        if(m_complete_isSet){ isObjectUpdated = true; break;}
+        if(id_isSet){ isObjectUpdated = true; break;}
+        
+        if(pet_id_isSet){ isObjectUpdated = true; break;}
+        
+        if(quantity_isSet){ isObjectUpdated = true; break;}
+        
+        
+        if(status>=0) { isObjectUpdated = true; break;}
+        
+        if(complete_isSet){ isObjectUpdated = true; break;}
     }while(false);
     return isObjectUpdated;
 }
