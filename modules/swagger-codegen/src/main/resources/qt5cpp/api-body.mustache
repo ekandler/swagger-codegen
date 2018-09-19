@@ -1,8 +1,6 @@
 {{>licenseInfo}}
 #include "{{classname}}.h"
 #include "{{prefix}}Helpers.h"
-#include "{{prefix}}ModelFactory.h"
-#include "{{prefix}}QObjectWrapper.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -11,21 +9,17 @@
 namespace {{this}} {
 {{/cppNamespaceDeclarations}}
 
-{{classname}}::{{classname}}() {}
+{{classname}}::{{classname}}(QObject * parent) : QObject(parent) {}
 
 {{classname}}::~{{classname}}() {}
 
-{{classname}}::{{classname}}(QString host, QString basePath) {
-    this->host = host;
-    this->basePath = basePath;
-}
+{{classname}}::{{classname}}({{prefix}}ClientConfig const &config, QObject * parent) : QObject(parent), config(config) {}
 
 {{#operations}}
 {{#operation}}
-void
-{{classname}}::{{nickname}}({{#allParams}}{{{dataType}}}{{#isBodyParam}}&{{/isBodyParam}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+QSharedPointer<{{prefix}}{{operationIdCamelCase}}Reply> {{classname}}::{{nickname}}({{#allParams}}{{{dataType}}} const &{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
     QString fullPath;
-    fullPath.append(this->host).append(this->basePath).append("{{{path}}}");
+    fullPath.append(config.baseUrl).append("{{{path}}}");
 
     {{#pathParams}}
     QString {{paramName}}PathParam("{"); {{paramName}}PathParam.append("{{baseName}}").append("}");
@@ -45,9 +39,9 @@ void
 
     {{#collectionFormat}}
 
-    if ({{{paramName}}}->size() > 0) {
+    if ({{{paramName}}}.size() > 0) {
       if (QString("{{collectionFormat}}").indexOf("multi") == 0) {
-        foreach({{{baseType}}} t, *{{paramName}}) {
+        Q_FOREACH({{{baseType}}} t, {{paramName}}) {
           if (fullPath.indexOf("?") > 0)
             fullPath.append("&");
           else
@@ -62,7 +56,7 @@ void
           fullPath.append("?");
         fullPath.append("{{baseName}}=");
         qint32 count = 0;
-        foreach({{{baseType}}} t, *{{paramName}}) {
+        Q_FOREACH({{{baseType}}} t, {{paramName}}) {
           if (count > 0) {
             fullPath.append(" ");
           }
@@ -76,7 +70,7 @@ void
           fullPath.append("?");
         fullPath.append("{{baseName}}=");
         qint32 count = 0;
-        foreach({{{baseType}}} t, *{{paramName}}) {
+        Q_FOREACH({{{baseType}}} t, {{paramName}}) {
           if (count > 0) {
             fullPath.append("\t");
           }
@@ -88,7 +82,7 @@ void
     {{/collectionFormat}}
     {{/queryParams}}
 
-    {{prefix}}HttpRequestWorker *worker = new {{prefix}}HttpRequestWorker();
+    QSharedPointer<{{prefix}}{{operationIdCamelCase}}Reply> worker(new {{prefix}}{{operationIdCamelCase}}Reply(this, this), &QObject::deleteLater);
     {{prefix}}HttpRequestInput input(fullPath, "{{httpMethod}}");
 
     {{#formParams}}
@@ -99,17 +93,19 @@ void
 
     {{#bodyParams}}
     {{#isContainer}}
-    QJsonObject {{paramName}}_jobj;
-    toJsonArray((QList<void*>*){{paramName}}, {{paramName}}_jobj, QString("body"), QString("{{prefix}}User*"));
-
-    QJsonDocument doc({{paramName}}_jobj);
+    QJsonArray {{paramName}}Array = toJsonArray({{paramName}});
+    QJsonDocument doc({{paramName}}Array);
     QByteArray bytes = doc.toJson();
 
     input.request_body.append(bytes);
     {{/isContainer}}
-    {{^isContainer}}{{#isString}}
-    QString output(*{{paramName}});{{/isString}}{{#isByteArray}}QString output(*{{paramName}});{{/isByteArray}}{{^isString}}{{^isByteArray}}
-    QString output = {{paramName}}.asJson();{{/isByteArray}}{{/isString}}
+    {{^isContainer}}
+    {{#isPrimitiveType}}
+    QString output = stringValue({{paramName}});
+    {{/isPrimitiveType}}
+    {{^isPrimitiveType}}
+    QString output = {{paramName}}.asJson();
+    {{/isPrimitiveType}}
     input.request_body.append(output);
     {{/isContainer}}{{/bodyParams}}
 
@@ -118,95 +114,77 @@ void
         input.headers.insert("{{baseName}}", "{{paramName}}");
     }
     {{/headerParams}}
+    {{#authMethods}}
+    // TODO: complete authMethods support
+    {{#isKeyInHeader}}
+    if (config.headerAuth.contains("{{keyParamName}}")) input.headers.insert("{{keyParamName}}", config.headerAuth["{{keyParamName}}"]);
+    {{/isKeyInHeader}}
+    {{/authMethods}}
 
-    foreach(QString key, this->defaultHeaders.keys()) {
-        input.headers.insert(key, this->defaultHeaders.value(key));
+    Q_FOREACH(QString key, config.defaultHeaders.keys()) {
+        input.headers.insert(key, config.defaultHeaders.value(key));
     }
 
-    connect(worker,
-            &{{prefix}}HttpRequestWorker::on_execution_finished,
-            this,
-            &{{classname}}::{{nickname}}Callback);
-
-    worker->execute(&input);
+    worker->execute(input);
+    connect(worker.data(), &{{prefix}}{{operationIdCamelCase}}Reply::finished, this, [worker]() mutable {
+        worker.clear(); // keep worker object alive until class-wide response signal can be emitted
+    });
+    return worker;
 }
 
-void
-{{classname}}::{{nickname}}Callback({{prefix}}HttpRequestWorker * worker) {
-    QString msg;
-    QString error_str = worker->error_str;
-    QNetworkReply::NetworkError error_type = worker->error_type;
-
-    if (worker->error_type == QNetworkReply::NoError) {
-        msg = QString("Success! %1 bytes").arg(worker->response.length());
+{{prefix}}{{operationIdCamelCase}}Reply::{{prefix}}{{operationIdCamelCase}}Reply({{classname}} * api, QObject * parent ) : {{prefix}}HttpRequestWorker(parent), api(api) {}
+void {{prefix}}{{operationIdCamelCase}}Reply::processResult() {
+    if (error_type == QNetworkReply::NoError) {
+        msg = QString("Success! %1 bytes").arg(rawResponse.length());
     }
     else {
-        msg = "Error: " + worker->error_str;
+        msg = "Error: " + error_str;
+        Q_EMIT api->{{classVarName}}Error("{{nickname}}", error_type, msg);
     }
 
     {{#returnType}}
     {{#isListContainer}}
-    {{{returnType}}} output = {{{defaultResponse}}};
-    QString json(worker->response);
-    QByteArray array (json.toStdString().c_str());
-    QJsonDocument doc = QJsonDocument::fromJson(array);
-    QJsonArray jsonArray = doc.array();
-    auto wrapper = new {{prefix}}QObjectWrapper<{{{returnType}}}> (output);
-    wrapper->deleteLater();
-    foreach(QJsonValue obj, jsonArray) {
-        {{{returnBaseType}}}* o = new {{returnBaseType}}();
-        QJsonObject jv = obj.toObject();
-        QJsonObject * ptr = (QJsonObject*)&jv;
-        o->fromJsonObject(*ptr);
-        auto objwrapper = new {{prefix}}QObjectWrapper<{{{returnBaseType}}}*> (o);
-        objwrapper->deleteLater();
-        output->append(o);
+    result = {{{defaultResponse}}};
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    QJsonArray const jsonArray = doc.array();
+
+    Q_FOREACH(QJsonValue const &obj, jsonArray) {
+        {{{returnBaseType}}} o = fromJsonValue<{{{returnBaseType}}}>(obj);
+        result.append(o);
     }
     {{/isListContainer}}
     {{^isListContainer}}
     {{^isMapContainer}}
     {{#returnTypeIsPrimitive}}
-    {{{returnType}}} output;  // TODO add primitive output support
-    {{#isByteArray}}auto wrapper = new {{prefix}}QObjectWrapper<{{{returnType}}}> (output);
-    wrapper->deleteLater();{{/isByteArray}}
-    {{#isDateTime}}auto wrapper = new {{prefix}}QObjectWrapper<{{{returnType}}}> (output);
-    wrapper->deleteLater();{{/isDateTime}}
-    {{#isDate}}auto wrapper = new {{prefix}}QObjectWrapper<{{{returnType}}}> (output);
-    wrapper->deleteLater();{{/isDate}}
-    {{#isString}}auto wrapper = new {{prefix}}QObjectWrapper<{{{returnType}}}> (output);
-    wrapper->deleteLater();{{/isString}}
+    {{#returnSimpleType}}result=QVariant(rawResponse).value<{{{returnType}}}>();{{/returnSimpleType}}
+    {{#isByteArray}}result=rawResponse;{{/isByteArray}}
+    {{#isDateTime}}result={{{returnType}}}::fromString(rawResponse, Qt::ISODate);{{/isDateTime}}
+    {{#isDate}}result={{{returnType}}}::fromString(rawResponse, Qt::ISODate);{{/isDate}}
+    {{#isString}}result=rawResponse;{{/isString}}
     {{/returnTypeIsPrimitive}}
     {{/isMapContainer}}
     {{#isMapContainer}}
-    {{{returnType}}} output = {{{defaultResponse}}};
-    QString json(worker->response);
-    QByteArray array (json.toStdString().c_str());
-    QJsonDocument doc = QJsonDocument::fromJson(array);
-    QJsonObject obj = doc.object();
+    result = {{{defaultResponse}}};
+    QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    QJsonObject const obj = doc.object();
 
-    foreach(QString key, obj.keys()) {
-        {{returnBaseType}} val;
-        setValue(&val, obj[key], "{{returnBaseType}}", QString());
-        output->insert(key, val);
+    Q_FOREACH(QString const &key, obj.keys()) {
+        result.insert(key, fromJsonValue<{{{returnBaseType}}}>(obj[key]));
     }
     {{/isMapContainer}}
     {{^isMapContainer}}
-    {{^returnTypeIsPrimitive}}
-    QString json(worker->response);
-    {{{returnType}}} output = static_cast<{{{returnType}}}>(create(json, QString("{{{returnBaseType}}}")));
-    auto wrapper = new {{prefix}}QObjectWrapper<{{{returnType}}}> (output);
-    wrapper->deleteLater();
+    {{^returnTypeIsPrimitive}}QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
+    result = fromJsonValue<{{{returnBaseType}}}>(QJsonValue(doc.object()));
     {{/returnTypeIsPrimitive}}
     {{/isMapContainer}}
     {{/isListContainer}}
     {{/returnType}}
-    worker->deleteLater();
 
-    if (worker->error_type == QNetworkReply::NoError) {
-        emit {{nickname}}Signal({{#returnType}}output{{/returnType}});
+    if (error_type == QNetworkReply::NoError) {
+        Q_EMIT api->{{nickname}}Signal({{#returnType}}result{{/returnType}});
     } else {
-        emit {{nickname}}SignalE({{#returnType}}output, {{/returnType}}error_type, error_str);
-        emit {{nickname}}SignalEFull(worker, error_type, error_str);
+        Q_EMIT api->{{nickname}}SignalE({{#returnType}}result, {{/returnType}}error_type, error_str);
+        Q_EMIT api->{{nickname}}SignalEFull(this, error_type, error_str);
     }
 }
 

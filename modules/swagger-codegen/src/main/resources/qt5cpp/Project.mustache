@@ -1,12 +1,6 @@
 QT += network
 
 HEADERS += \
-# Models
-{{#models}}
-{{#model}}
-    $${PWD}/{{classname}}.h \
-{{/model}}
-{{/models}}
 # APIs
 {{#apiInfo}}
 {{#apis}}
@@ -15,20 +9,18 @@ HEADERS += \
 {{/operations}}
 {{/apis}}
 {{/apiInfo}}
+# Models
+{{#models}}
+{{#model}}
+    $${PWD}/{{classname}}.h \
+{{/model}}
+{{/models}}
 # Others
     $${PWD}/{{prefix}}Helpers.h \
     $${PWD}/{{prefix}}HttpRequest.h \
-    $${PWD}/{{prefix}}ModelFactory.h \
-    $${PWD}/{{prefix}}Object.h \
-    $${PWD}/{{prefix}}QObjectWrapper.h
+    $${PWD}/{{prefix}}Object.h 
 
 SOURCES += \
-# Models
-{{#models}}
-{{#model}}
-    $${PWD}/{{classname}}.cpp \
-{{/model}}
-{{/models}}
 # APIs
 {{#apiInfo}}
 {{#apis}}
@@ -37,6 +29,12 @@ SOURCES += \
 {{/operations}}
 {{/apis}}
 {{/apiInfo}}
+# Models
+{{#models}}
+{{#model}}
+    $${PWD}/{{classname}}.cpp \
+{{/model}}
+{{/models}}
 # Others
     $${PWD}/{{prefix}}Helpers.cpp \
     $${PWD}/{{prefix}}HttpRequest.cpp

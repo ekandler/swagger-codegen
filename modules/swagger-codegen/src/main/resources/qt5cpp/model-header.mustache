@@ -9,6 +9,7 @@
 #define {{classname}}_H_
 
 #include <QJsonObject>
+#include <QStringList>
 
 {{/model}}{{/models}}
 {{#imports}}{{{import}}}
@@ -25,28 +26,37 @@ namespace {{this}} {
 class {{classname}}: public {{prefix}}Object {
 public:
     {{classname}}();
-    {{classname}}(QString json);
-    ~{{classname}}();
+    {{classname}}(QString const &json);
+    virtual ~{{classname}}();
     void init();
     void cleanup();
 
-    QString asJson () override;
-    QJsonObject asJsonObject() override;
-    void fromJsonObject(QJsonObject json) override;
-    {{classname}}* fromJson(QString jsonString) override;
+    QString asJson () const override;
+    QJsonObject asJsonObject() const override;
+    void fromJsonObject(QJsonObject const &json) override;
+    void fromJson(QString const &jsonString) override;
 
     {{#vars}}
-    {{{datatype}}} {{getter}}();
-    void {{setter}}({{{datatype}}} {{name}});
+    {{#isEnum}}enum {{baseName}} { 
+        {{baseName}}_{{prefix}}Undefined=-1{{#allowableValues}}{{#values}},
+        {{baseName}}_{{.}}{{/values}}{{/allowableValues}}
+    };
+    {{{baseName}}} {{getter}}() const;
+    void {{setter}}({{{baseName}}} const &{{name}});{{/isEnum}}{{^isEnum}}
+    {{{datatype}}} {{getter}}() const;
+    void {{setter}}({{{datatype}}} const &{{name}});
+    {{/isEnum}}
 
     {{/vars}}
 
-    virtual bool isSet() override;
+    virtual bool isSet() const override;
 
 private:
     {{#vars}}
-    {{{datatype}}} {{name}};
-    bool m_{{name}}_isSet;
+    {{#isEnum}}static QStringList data_{{baseName}};
+    {{baseName}} {{name}};{{/isEnum}}{{^isEnum}}
+    {{{datatype}}} {{name}};{{/isEnum}}{{#isPrimitiveType}}
+    bool {{name}}_isSet;{{/isPrimitiveType}}
 
     {{/vars}}
 };

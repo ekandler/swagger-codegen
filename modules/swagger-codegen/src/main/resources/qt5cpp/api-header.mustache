@@ -3,6 +3,7 @@
 #define _{{prefix}}_{{classname}}_H_
 
 #include "{{prefix}}HttpRequest.h"
+#include "{{prefix}}Helpers.h"
 
 {{#imports}}{{{import}}}
 {{/imports}}
@@ -13,32 +14,40 @@
 namespace {{this}} {
 {{/cppNamespaceDeclarations}}
 
+{{#operations}}{{#operation}}class {{prefix}}{{operationIdCamelCase}}Reply;
+{{/operation}}{{/operations}}
 class {{classname}}: public QObject {
     Q_OBJECT
 
 public:
-    {{classname}}();
-    {{classname}}(QString host, QString basePath);
+    {{classname}}(QObject * parent = nullptr);
+    {{classname}}({{prefix}}ClientConfig const &api, QObject * parent = nullptr);
     ~{{classname}}();
 
-    QString host;
-    QString basePath;
-    QMap<QString, QString> defaultHeaders;
+    {{prefix}}ClientConfig config;
 
-    {{#operations}}{{#operation}}void {{nickname}}({{#allParams}}{{{dataType}}}{{#isBodyParam}}&{{/isBodyParam}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+    {{#operations}}{{#operation}}QSharedPointer<{{prefix}}{{operationIdCamelCase}}Reply> {{nickname}}({{#allParams}}{{{dataType}}} const &{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
     {{/operation}}{{/operations}}
-private:
-    {{#operations}}{{#operation}}void {{nickname}}Callback ({{prefix}}HttpRequestWorker * worker);
-    {{/operation}}{{/operations}}
-signals:
+Q_SIGNALS:
     {{#operations}}{{#operation}}void {{nickname}}Signal({{#returnType}}{{{returnType}}} summary{{/returnType}});
     {{/operation}}{{/operations}}
     {{#operations}}{{#operation}}void {{nickname}}SignalE({{#returnType}}{{{returnType}}} summary, {{/returnType}}QNetworkReply::NetworkError error_type, QString& error_str);
     {{/operation}}{{/operations}}
     {{#operations}}{{#operation}}void {{nickname}}SignalEFull({{prefix}}HttpRequestWorker* worker, QNetworkReply::NetworkError error_type, QString& error_str);
     {{/operation}}{{/operations}}
+    void {{classVarName}}Error(QString operation, QNetworkReply::NetworkError error_type, QString errMsg);
 };
 
+{{#operations}}{{#operation}}class {{prefix}}{{operationIdCamelCase}}Reply : public {{prefix}}HttpRequestWorker {
+    Q_OBJECT
+public:
+    {{prefix}}{{operationIdCamelCase}}Reply({{classname}} * api, QObject * parent = nullptr);
+    virtual void processResult() override;{{#returnType}}
+    {{{returnType}}} result;{{/returnType}}
+    {{classname}} * api;
+};
+
+{{/operation}}{{/operations}}
 {{#cppNamespaceDeclarations}}
 }
 {{/cppNamespaceDeclarations}}

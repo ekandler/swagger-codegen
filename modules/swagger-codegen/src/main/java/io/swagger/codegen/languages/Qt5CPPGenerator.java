@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -115,9 +116,7 @@ public class Qt5CPPGenerator extends AbstractCppCodegen implements CodegenConfig
         supportingFiles.add(new SupportingFile("helpers-body.mustache", sourceFolder, PREFIX + "Helpers.cpp"));
         supportingFiles.add(new SupportingFile("HttpRequest.h.mustache", sourceFolder, PREFIX + "HttpRequest.h"));
         supportingFiles.add(new SupportingFile("HttpRequest.cpp.mustache", sourceFolder, PREFIX + "HttpRequest.cpp"));
-        supportingFiles.add(new SupportingFile("modelFactory.mustache", sourceFolder, PREFIX + "ModelFactory.h"));
         supportingFiles.add(new SupportingFile("object.mustache", sourceFolder, PREFIX + "Object.h"));
-        supportingFiles.add(new SupportingFile("QObjectWrapper.h.mustache", sourceFolder, PREFIX + "QObjectWrapper.h"));
         if (optionalProjectFileFlag) {
             supportingFiles.add(new SupportingFile("Project.mustache", sourceFolder, "client.pri"));
         }
@@ -158,6 +157,7 @@ public class Qt5CPPGenerator extends AbstractCppCodegen implements CodegenConfig
         systemIncludes.add("QDate");
         systemIncludes.add("QDateTime");
         systemIncludes.add("QByteArray");
+        systemIncludes.add("QSharedPointer");
     }
 
     @Override
@@ -175,13 +175,13 @@ public class Qt5CPPGenerator extends AbstractCppCodegen implements CodegenConfig
             supportingFiles.add(new SupportingFile("helpers-body.mustache", sourceFolder, modelNamePrefix + "Helpers.cpp"));
             supportingFiles.add(new SupportingFile("HttpRequest.h.mustache", sourceFolder, modelNamePrefix + "HttpRequest.h"));
             supportingFiles.add(new SupportingFile("HttpRequest.cpp.mustache", sourceFolder, modelNamePrefix + "HttpRequest.cpp"));
-            supportingFiles.add(new SupportingFile("modelFactory.mustache", sourceFolder, modelNamePrefix + "ModelFactory.h"));
+            //supportingFiles.add(new SupportingFile("modelFactory.mustache", sourceFolder, modelNamePrefix + "ModelFactory.h"));
             supportingFiles.add(new SupportingFile("object.mustache", sourceFolder, modelNamePrefix + "Object.h"));
             supportingFiles.add(new SupportingFile("QObjectWrapper.h.mustache", sourceFolder, modelNamePrefix + "QObjectWrapper.h"));
 
             typeMapping.put("object", modelNamePrefix + "Object");
             typeMapping.put("file", modelNamePrefix + "HttpRequestInputFileElement");
-            importMapping.put("SWGHttpRequestInputFileElement", "#include \"" + modelNamePrefix + "HttpRequest.h\"");
+            importMapping.put("SWGHttpRequestInputFileElement", "#include \"common/" + modelNamePrefix + "HttpRequest.h\"");
             additionalProperties().put("prefix", modelNamePrefix);
         }
 
@@ -295,32 +295,31 @@ public class Qt5CPPGenerator extends AbstractCppCodegen implements CodegenConfig
         if (p instanceof ArrayProperty) {
             ArrayProperty ap = (ArrayProperty) p;
             Property inner = ap.getItems();
-            return getSwaggerType(p) + "<" + getTypeDeclaration(inner) + ">*";
+            return getSwaggerType(p) + "<" + getTypeDeclaration(inner) + ">";
         } else if (p instanceof MapProperty) {
             MapProperty mp = (MapProperty) p;
             Property inner = mp.getAdditionalProperties();
-            return getSwaggerType(p) + "<QString, " + getTypeDeclaration(inner) + ">*";
+            return getSwaggerType(p) + "<QString, " + getTypeDeclaration(inner) + ">";
         }
         if (foundationClasses.contains(swaggerType)) {
-            return swaggerType + "*";
+            return swaggerType;
         } else if (languageSpecificPrimitives.contains(swaggerType)) {
             return toModelName(swaggerType);
         } else {
-            return swaggerType + "*";
+            return swaggerType;
         }
     }
-
 
     @Override
     public String toDefaultValue(Property p) {
         if (p instanceof StringProperty) {
-            return "new QString(\"\")";
+            return "QString()";
         } else if (p instanceof BooleanProperty) {
             return "false";
         } else if (p instanceof DateProperty) {
-            return "NULL";
+            return "QDate()";
         } else if (p instanceof DateTimeProperty) {
-            return "NULL";
+            return "QDateTime()";
         } else if (p instanceof DoubleProperty) {
             return "0.0";
         } else if (p instanceof FloatProperty) {
@@ -338,18 +337,18 @@ public class Qt5CPPGenerator extends AbstractCppCodegen implements CodegenConfig
         } else if (p instanceof MapProperty) {
             MapProperty mp = (MapProperty) p;
             Property inner = mp.getAdditionalProperties();
-            return "new QMap<QString, " + getTypeDeclaration(inner) + ">()";
+            return "QMap<QString, " + getTypeDeclaration(inner) + ">()";
         } else if (p instanceof ArrayProperty) {
             ArrayProperty ap = (ArrayProperty) p;
             Property inner = ap.getItems();
-            return "new QList<" + getTypeDeclaration(inner) + ">()";
+            return "QList<" + getTypeDeclaration(inner) + ">()";
         }
         // else
         if (p instanceof RefProperty) {
             RefProperty rp = (RefProperty) p;
-            return "new " + toModelName(rp.getSimpleRef()) + "()";
+            return toModelName(rp.getSimpleRef()) + "()";
         }
-        return "NULL";
+        return getSwaggerType(p) + "()";
     }
 
     /**

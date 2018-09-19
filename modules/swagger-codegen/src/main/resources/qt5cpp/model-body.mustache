@@ -13,7 +13,11 @@
 namespace {{this}} {
 {{/cppNamespaceDeclarations}}
 
-{{classname}}::{{classname}}(QString json) {
+{{#vars}}{{#isEnum}}QStringList {{classname}}::data_{{baseName}} { {{#allowableValues}}{{#values}}
+    "{{.}}"{{^-last}},{{/-last}}{{/values}}{{/allowableValues}}
+};{{/isEnum}}{{/vars}}
+
+{{classname}}::{{classname}}(QString const &json) {
     init();
     this->fromJson(json);
 }
@@ -26,201 +30,86 @@ namespace {{this}} {
     this->cleanup();
 }
 
-void
-{{classname}}::init() {
-    {{#vars}}
-    {{name}} = {{{defaultValue}}};
-    m_{{name}}_isSet = false;
+void {{classname}}::init() {
+    {{#vars}}{{#isPrimitiveType}}{{name}} = {{{defaultValue}}};
+    {{name}}_isSet = false;{{/isPrimitiveType}}{{#isEnum}}{{name}} = {{baseName}}_{{prefix}}Undefined;
+    {{/isEnum}}
     {{/vars}}
 }
 
-void
-{{classname}}::cleanup() {
-    {{#vars}}
-    {{#complexType}}
-    if({{name}} != nullptr) { {{#isContainer}}
-        auto arr = {{name}};
-        for(auto o: *arr) { {{#items.isContainer}}
-            for(auto o1: *o) {
-                delete o1;
-            }{{/items.isContainer}}
-            delete o;
-        }{{/isContainer}}
-        delete {{name}};
-    }{{/complexType}}{{^complexType}}{{#isContainer}}
-    if({{name}} != nullptr) { {{#items.isContainer}}
-        auto arr = {{name}};
-        for(auto o: *arr) { 
-            delete o;
-        }{{/items.isContainer}}
-        delete {{name}};
-    }{{/isContainer}}{{/complexType}}
-    {{/vars}}
+void {{classname}}::cleanup() {
 }
 
-{{classname}}*
-{{classname}}::fromJson(QString json) {
+void {{classname}}::fromJson(QString const &json) {
     QByteArray array (json.toStdString().c_str());
     QJsonDocument doc = QJsonDocument::fromJson(array);
     QJsonObject jsonObject = doc.object();
     this->fromJsonObject(jsonObject);
-    return this;
 }
 
-void
-{{classname}}::fromJsonObject(QJsonObject pJson) {
-    {{#vars}}
-    {{^isContainer}}::{{cppNamespace}}::setValue(&{{name}}, pJson["{{baseName}}"], "{{baseType}}", "{{complexType}}");{{/isContainer}}
-    {{#isContainer}}{{^items.isContainer}}::{{cppNamespace}}::setValue(&{{name}}, pJson["{{baseName}}"], "{{baseType}}", "{{items.baseType}}");{{/items.isContainer}}{{#items.isContainer}}{{#isListContainer}}
-    if(pJson["{{baseName}}"].isArray()){
-        auto arr = pJson["{{baseName}}"].toArray();
-        for (const QJsonValue & jval : arr) {
-            {{#items.isListContainer}}auto {{name}}_item = new QList<{{items.items.baseType}}{{^items.items.isLong}}{{^items.items.isInteger}}{{^items.items.isDouble}}{{^items.items.isFloat}}{{^items.items.isBoolean}}*{{/items.items.isBoolean}}{{/items.items.isFloat}}{{/items.items.isDouble}}{{/items.items.isInteger}}{{/items.items.isLong}}>();{{/items.isListContainer}}
-            {{#items.isMapContainer}}auto {{name}}_item = new QMap<QString, {{items.items.baseType}} {{^items.items.isLong}}{{^items.items.isInteger}}{{^items.items.isDouble}}{{^items.items.isFloat}}{{^items.items.isBoolean}}*{{/items.items.isBoolean}}{{/items.items.isFloat}}{{/items.items.isDouble}}{{/items.items.isInteger}}{{/items.items.isLong}}>();{{/items.isMapContainer}}
-            auto jsonval = jval.toObject();
-            ::{{cppNamespace}}::setValue({{name}}_item, jsonval, "{{items.baseType}}", "{{items.items.baseType}}");
-            {{name}}->push_back({{name}}_item);
-        }
-    }{{/isListContainer}}{{#isMapContainer}}
-    if(pJson["{{baseName}}"].isObject()){
-        auto varmap = pJson["{{baseName}}"].toObject().toVariantMap();
-        if(varmap.count() > 0){
-            for(auto val : varmap.keys()){
-                {{#items.isListContainer}}auto {{name}}_item = new QList<{{items.items.baseType}}{{^items.items.isLong}}{{^items.items.isInteger}}{{^items.items.isDouble}}{{^items.items.isFloat}}{{^items.items.isBoolean}}*{{/items.items.isBoolean}}{{/items.items.isFloat}}{{/items.items.isDouble}}{{/items.items.isInteger}}{{/items.items.isLong}}>();{{/items.isListContainer}}
-                {{#items.isMapContainer}}auto {{name}}_item = new QMap<QString, {{items.items.baseType}}{{^items.items.isLong}}{{^items.items.isInteger}}{{^items.items.isDouble}}{{^items.items.isFloat}}{{^items.items.isBoolean}}*{{/items.items.isBoolean}}{{/items.items.isFloat}}{{/items.items.isDouble}}{{/items.items.isInteger}}{{/items.items.isLong}}>();{{/items.isMapContainer}}
-    		    auto jsonval = QJsonValue::fromVariant(varmap.value(val));
-    		    ::{{cppNamespace}}::setValue((QMap<QString, void *>*)&{{name}}_item, jsonval, "{{items.baseType}}", "{{items.items.baseType}}");
-
-                {{name}}->insert({{name}}->end(), val, {{name}}_item);
-            }
-        }
-    }{{/isMapContainer}}{{/items.isContainer}}{{/isContainer}}
+void {{classname}}::fromJsonObject(QJsonObject const &pJson) {
+    mGenericData = pJson;
+    {{#vars}}{{#isEnum}}
+    {{name}} = {{baseName}}(data_{{baseName}}.indexOf(fromJsonValue<{{baseType}}>(pJson["{{baseName}}"])));{{/isEnum}}{{^isEnum}}
+    {{#isPrimitiveType}}{{name}}_isSet = pJson.contains("{{baseName}}");
+    {{/isPrimitiveType}}{{^isContainer}}{{name}} = fromJsonValue<{{baseType}}>(pJson["{{baseName}}"]);{{/isContainer}}
+    {{#isContainer}}
+    {{#complexType}}{{name}} = containerFromJsonValue<{{baseType}}<{{complexType}}> >(pJson["{{baseName}}"]);{{/complexType}}
+    {{^complexType}}{{name}} = containerFromJsonValue<{{baseType}}<{{items.baseType}}> >(pJson["{{baseName}}"]);{{/complexType}}
+    {{/isContainer}}{{/isEnum}}
     {{/vars}}
 }
 
-QString
-{{classname}}::asJson ()
+QString {{classname}}::asJson () const
 {
-    QJsonObject obj = this->asJsonObject();
+    QJsonObject const obj = this->asJsonObject();
     QJsonDocument doc(obj);
     QByteArray bytes = doc.toJson();
     return QString(bytes);
 }
 
-QJsonObject
-{{classname}}::asJsonObject() {
+QJsonObject {{classname}}::asJsonObject() const {
     QJsonObject obj;
-    {{#vars}}
-    {{^isContainer}}
-    {{#complexType}}
-    {{^isString}}
-    {{^isDate}}
-    {{^isDateTime}}
-    {{^isByteArray}} 
-    if(({{name}} != nullptr) && ({{name}}->isSet())){
-        toJsonValue(QString("{{baseName}}"), {{name}}, obj, QString("{{complexType}}"));
-    }
-    {{/isByteArray}}
-    {{/isDateTime}}
-    {{/isDate}}
-    {{/isString}}
-    {{#isString}}
-    if({{name}} != nullptr && *{{name}} != QString("")){
-        toJsonValue(QString("{{baseName}}"), {{name}}, obj, QString("{{complexType}}"));
-    }
-    {{/isString}}
-    {{/complexType}}
-    {{#isPrimitiveType}}
-    {{^isDateTime}}
-    {{^isDate}}
-    {{^isByteArray}}
-    if(m_{{name}}_isSet){
-        obj.insert("{{baseName}}", QJsonValue({{name}}));
-    }
-    {{/isByteArray}}
-    {{/isDate}}
-    {{/isDateTime}}
-    {{/isPrimitiveType}}
-    {{#isDate}}    
-    if({{name}} != nullptr) { 
-        toJsonValue(QString("{{baseName}}"), {{name}}, obj, QString("{{complexType}}"));
-    }
-    {{/isDate}}
-    {{#isByteArray}}    
-    if({{name}} != nullptr) { 
+    {{#vars}}{{#isEnum}}
+    obj.insert("{{baseName}}", data_{{baseName}}.at({{name}}));{{/isEnum}}{{^isEnum}}{{#complexType}}{{^isContainer}}{{#complexType}}
+    obj.insert("{{baseName}}", toJsonValue({{name}}));{{/complexType}}{{^complexType}}
+    if({{name}} != nullptr && *{{name}} != nullptr) { 
         obj.insert("{{name}}", QJsonValue(*{{name}}));
-    }
-    {{/isByteArray}}
-    {{#isDateTime}}   
-    if({{name}} != nullptr) { 
-        toJsonValue(QString("{{baseName}}"), {{name}}, obj, QString("{{complexType}}"));
-    }
-    {{/isDateTime}}
-    {{/isContainer}}
-    {{#isContainer}}
-    {{#isListContainer}}
-    if({{name}}->size() > 0){
-        {{^items.isContainer}}
-        toJsonArray((QList<void*>*){{name}}, obj, "{{baseName}}", "{{complexType}}");
-        {{/items.isContainer}}
-        {{#items.isContainer}}
-        QJsonArray jarray;
-        for(auto items : *{{name}}){
-            QJsonObject jobj;
-            {{#items.isListContainer}}
-            toJsonArray((QList<void*>*)items, jobj, "{{baseName}}", "{{items.items.baseType}}");
-            {{/items.isListContainer}}
-            {{#items.isMapContainer}}
-            toJsonMap((QMap<QString, void*>*)items, jobj, "{{baseName}}", "{{items.items.baseType}}");
-            {{/items.isMapContainer}}
-            jarray.append(jobj.value("{{baseName}}"));
-        }
-        obj.insert("{{baseName}}", jarray);
-        {{/items.isContainer}}
-    }
-    {{/isListContainer}}
-    {{#isMapContainer}}
-    if({{name}}->size() > 0){
-        {{^items.isContainer}}toJsonMap((QMap<QString, void*>*) {{name}}, obj, "{{baseName}}", "{{complexType}}");{{/items.isContainer}}{{#items.isContainer}}
-        QJsonObject mapobj;
-        for(auto itemkey : {{name}}->keys()){
-            QJsonObject jobj;
-            {{#items.isListContainer}}
-            toJsonArray((QList<void*>*){{name}}->value(itemkey), jobj, itemkey, "{{items.items.baseType}}");
-            {{/items.isListContainer}}
-            {{#items.isMapContainer}}
-            toJsonMap((QMap<QString, void*>*){{name}}->value(itemkey), jobj, itemkey, "{{items.items.baseType}}");
-            {{/items.isMapContainer}}
-            mapobj.insert(itemkey, jobj);
-        }
-        obj.insert("{{baseName}}", mapobj);{{/items.isContainer}}
-    }
-    {{/isMapContainer}}
-    {{/isContainer}}
+    }{{/complexType}}{{/isContainer}}{{#isContainer}}
+    obj.insert("{{baseName}}", toJsonArray({{name}}));{{/isContainer}}{{/complexType}}{{^complexType}}{{^isContainer}}
+    obj.insert("{{baseName}}", QJsonValue({{name}}));{{/isContainer}}{{#isContainer}}
+    obj.insert("{{baseName}}", toJsonArray({{name}}));{{/isContainer}}{{/complexType}}{{/isEnum}}
     {{/vars}}
 
     return obj;
 }
 
 {{#vars}}
-{{{datatype}}}
-{{classname}}::{{getter}}() {
+{{#isEnum}}
+{{classname}}::{{{baseName}}} {{classname}}::{{getter}}() const {
     return {{name}};
 }
-void
-{{classname}}::{{setter}}({{{datatype}}} {{name}}) {
+void {{classname}}::{{setter}}({{{baseName}}} const &{{name}}) {
     this->{{name}} = {{name}};
-    this->m_{{name}}_isSet = true;
 }
+{{/isEnum}}{{^isEnum}}
+{{{datatype}}} {{classname}}::{{getter}}() const {
+    return {{name}};
+}
+void {{classname}}::{{setter}}({{{datatype}}} const &{{name}}) {
+    this->{{name}} = {{name}};{{#isPrimitiveType}}
+    this->{{name}}_isSet = true;{{/isPrimitiveType}}
+}
+{{/isEnum}}
 
 {{/vars}}
 
-bool
-{{classname}}::isSet(){
+bool {{classname}}::isSet() const{
     bool isObjectUpdated = false;
     do{
     {{#vars}}
-        {{#isPrimitiveType}}if(m_{{name}}_isSet){ isObjectUpdated = true; break;}{{/isPrimitiveType}}{{#isContainer}}if({{name}}->size() > 0){ isObjectUpdated = true; break;}{{/isContainer}}{{^isContainer}}{{#complexType}}{{^isString}}{{^isDateTime}}if({{name}} != nullptr && {{name}}->isSet()){ isObjectUpdated = true; break;}{{/isDateTime}}{{/isString}}{{#isString}}if({{name}} != nullptr && *{{name}} != QString("")){ isObjectUpdated = true; break;}{{/isString}}{{/complexType}}{{/isContainer}}
+        {{#isEnum}}if({{name}}>=0) { isObjectUpdated = true; break;}{{/isEnum}}{{^isEnum}}
+        {{#isPrimitiveType}}if({{name}}_isSet){ isObjectUpdated = true; break;}{{/isPrimitiveType}}{{#isContainer}}if({{name}}.size() > 0){ isObjectUpdated = true; break;}{{/isContainer}}{{^isContainer}}{{#complexType}}{{^isString}}{{^isDateTime}}if({{name}}.isSet()){ isObjectUpdated = true; break;}{{/isDateTime}}{{/isString}}{{#isString}}if(!{{name}}.isNull()){ isObjectUpdated = true; break;}{{/isString}}{{/complexType}}{{/isContainer}}{{/isEnum}}
     {{/vars}}
     }while(false);
     return isObjectUpdated;
