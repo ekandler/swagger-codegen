@@ -43,15 +43,15 @@ inline T fromJsonValue(QJsonValue const &value) {
     so.fromJsonObject(jsonObj);
     return so;
 }
-template <> inline QDate fromJsonValue<QDate>(QJsonValue const &value) {return QDate::fromString(value.toString(), Qt::ISODate);}
-template <> inline QDateTime fromJsonValue<QDateTime>(QJsonValue const &value) {return QDateTime::fromString(value.toString(), Qt::ISODate);}
-template <> inline QByteArray fromJsonValue<QByteArray>(QJsonValue const &value) {return value.toString().toUtf8();}
-template <> inline QString fromJsonValue<QString>(QJsonValue const &value) {return value.toString();}
-template <> inline qint32 fromJsonValue<qint32>(QJsonValue const &value)  {return value.toInt();}
+template <> inline QDate fromJsonValue<QDate>(QJsonValue const &value) {return QDate::fromString(value.toVariant().toString(), Qt::ISODate);}
+template <> inline QDateTime fromJsonValue<QDateTime>(QJsonValue const &value) {return QDateTime::fromString(value.toVariant().toString(), Qt::ISODate);}
+template <> inline QByteArray fromJsonValue<QByteArray>(QJsonValue const &value) {return value.toVariant().toString().toUtf8();}
+template <> inline QString fromJsonValue<QString>(QJsonValue const &value) {return value.toVariant().toString();}
+template <> inline qint32 fromJsonValue<qint32>(QJsonValue const &value)  {return value.toVariant().toInt();}
 template <> inline qint64 fromJsonValue<qint64>(QJsonValue const &value)  {return value.toVariant().toLongLong();}
-template <> inline bool fromJsonValue<bool>(QJsonValue const &value)    {return value.toBool();}
-template <> inline float fromJsonValue<float>(QJsonValue const &value)   {return value.toDouble();}
-template <> inline double fromJsonValue<double>(QJsonValue const &value)  {return value.toDouble();}
+template <> inline bool fromJsonValue<bool>(QJsonValue const &value)    {return value.toVariant().toBool();}
+template <> inline float fromJsonValue<float>(QJsonValue const &value)   {return value.toVariant().toDouble();}
+template <> inline double fromJsonValue<double>(QJsonValue const &value)  {return value.toVariant().toDouble();}
 
 template <typename U>
 inline U containerFromJsonValue(QJsonValue const &value) {

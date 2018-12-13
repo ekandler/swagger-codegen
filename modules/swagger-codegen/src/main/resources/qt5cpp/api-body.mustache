@@ -154,15 +154,9 @@ void {{prefix}}{{operationIdCamelCase}}Reply::processResult() {
     }
     {{/isListContainer}}
     {{^isListContainer}}
-    {{^isMapContainer}}
-    {{#returnTypeIsPrimitive}}
+    {{^isMapContainer}}{{#returnTypeIsPrimitive}}
     {{#returnSimpleType}}result=QVariant(rawResponse).value<{{{returnType}}}>();{{/returnSimpleType}}
-    {{#isByteArray}}result=rawResponse;{{/isByteArray}}
-    {{#isDateTime}}result={{{returnType}}}::fromString(rawResponse, Qt::ISODate);{{/isDateTime}}
-    {{#isDate}}result={{{returnType}}}::fromString(rawResponse, Qt::ISODate);{{/isDate}}
-    {{#isString}}result=rawResponse;{{/isString}}
-    {{/returnTypeIsPrimitive}}
-    {{/isMapContainer}}
+    {{/returnTypeIsPrimitive}}{{/isMapContainer}}
     {{#isMapContainer}}
     result = {{{defaultResponse}}};
     QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
@@ -174,7 +168,14 @@ void {{prefix}}{{operationIdCamelCase}}Reply::processResult() {
     {{/isMapContainer}}
     {{^isMapContainer}}
     {{^returnTypeIsPrimitive}}QJsonDocument const doc = QJsonDocument::fromJson(rawResponse);
-    result = fromJsonValue<{{{returnBaseType}}}>(QJsonValue(doc.object()));
+    if (doc.isObject()) {
+        result = fromJsonValue<{{{returnBaseType}}}>(QJsonValue(doc.object()));
+    } else {
+        QString parsedResponse(rawResponse);
+        if(parsedResponse.at(0) == '"') parsedResponse.remove(0,1);
+        if(parsedResponse.at(parsedResponse.size()-1) == '"') parsedResponse.chop(1);
+        result = fromJsonValue<{{{returnBaseType}}}>(QJsonValue(parsedResponse));
+    }
     {{/returnTypeIsPrimitive}}
     {{/isMapContainer}}
     {{/isListContainer}}
