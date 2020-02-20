@@ -172,8 +172,10 @@ void {{prefix}}{{operationIdCamelCase}}Reply::processResult() {
         result = fromJsonValue<{{{returnBaseType}}}>(QJsonValue(doc.object()));
     } else {
         QString parsedResponse(rawResponse);
-        if(parsedResponse.at(0) == '"') parsedResponse.remove(0,1);
-        if(parsedResponse.at(parsedResponse.size()-1) == '"') parsedResponse.chop(1);
+        if (!parsedResponse.isEmpty()) {
+            if(parsedResponse.at(0) == '"') parsedResponse.remove(0,1);
+            if(parsedResponse.at(parsedResponse.size()-1) == '"') parsedResponse.chop(1);
+        }
         result = fromJsonValue<{{{returnBaseType}}}>(QJsonValue(parsedResponse));
     }
     {{/returnTypeIsPrimitive}}
