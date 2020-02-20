@@ -30,10 +30,12 @@ QString stringValue(QString value);
 QString stringValue(qint32 value);
 QString stringValue(qint64 value);
 QString stringValue(bool value);
+QString stringValue(QDateTime value);
 void toPrimitiveValue(QString &output, QString const &value);
 void toPrimitiveValue(qint32 &output, QString const &value);
 void toPrimitiveValue(qint64 &output, QString const &value);
 void toPrimitiveValue(bool &output, QString const &value);
+void toPrimitiveValue(QDateTime &output, QString const &value);
 
 
 template <typename T> // swgObjects
@@ -43,8 +45,8 @@ inline T fromJsonValue(QJsonValue const &value) {
     so.fromJsonObject(jsonObj);
     return so;
 }
-template <> inline QDate fromJsonValue<QDate>(QJsonValue const &value) {return QDate::fromString(value.toVariant().toString(), Qt::ISODate);}
-template <> inline QDateTime fromJsonValue<QDateTime>(QJsonValue const &value) {return QDateTime::fromString(value.toVariant().toString(), Qt::ISODate);}
+template <> inline QDate fromJsonValue<QDate>(QJsonValue const &value) {return QDate::fromString(value.toVariant().toString(), Qt::ISODateWithMs);}
+template <> inline QDateTime fromJsonValue<QDateTime>(QJsonValue const &value) {return QDateTime::fromString(value.toVariant().toString(), Qt::ISODateWithMs);}
 template <> inline QByteArray fromJsonValue<QByteArray>(QJsonValue const &value) {return value.toVariant().toString().toUtf8();}
 template <> inline QString fromJsonValue<QString>(QJsonValue const &value) {return value.toVariant().toString();}
 template <> inline qint32 fromJsonValue<qint32>(QJsonValue const &value)  {return value.toVariant().toInt();}
@@ -64,8 +66,8 @@ inline U containerFromJsonValue(QJsonValue const &value) {
 }
 
 template <typename T> QJsonValue toJsonValue(T const &value) { return value.asJsonObject();}
-template <> inline QJsonValue toJsonValue<QDate>(QDate const &value) { return QJsonValue(value.toString(Qt::ISODate));}
-template <> inline QJsonValue toJsonValue<QDateTime>(QDateTime const &value) { return QJsonValue(value.toString(Qt::ISODate));}
+template <> inline QJsonValue toJsonValue<QDate>(QDate const &value) { return QJsonValue(value.toString(Qt::ISODateWithMs));}
+template <> inline QJsonValue toJsonValue<QDateTime>(QDateTime const &value) { return QJsonValue(value.toString(Qt::ISODateWithMs));}
 template <> inline QJsonValue toJsonValue<QByteArray>(QByteArray const &value) { return QString(value);}
 template <> inline QJsonValue toJsonValue<QString>(QString const &value) { return value; }
 template <> inline QJsonValue toJsonValue<qint32>(qint32 const &value) { return value; }

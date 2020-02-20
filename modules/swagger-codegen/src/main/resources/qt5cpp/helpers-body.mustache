@@ -37,6 +37,11 @@ stringValue(bool value) {
     return QString(value ? "true" : "false");
 }
 
+QString
+stringValue(QDateTime value) {
+    return value.toString(Qt::ISODateWithMs);
+}
+
 void toPrimitiveValue(bool &output, const QString &value)
 {
     if (value.compare("true", Qt::CaseInsensitive) == 0) {
@@ -59,6 +64,11 @@ void toPrimitiveValue(qint32 &output, const QString &value)
 void toPrimitiveValue(qint64 &output, const QString &value)
 {
     output = value.toLong();
+}
+
+void toPrimitiveValue(QDateTime &output, const QString &value)
+{
+    output = QDateTime::fromString(value, Qt::ISODateWithMs);
 }
 
 {{prefix}}ClientConfig::{{prefix}}ClientConfig(QString baseUrl)
